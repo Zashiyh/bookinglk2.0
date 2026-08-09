@@ -2,25 +2,149 @@
 
 :root {
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #111111;
+
+  --surface: #fafafa;
+  --card: #ffffff;
+
+  --border: #e5e5e5;
+
+  --gold: #b8860b;
+  --gold-bright: #d4af37;
+
+  --muted: #6b7280;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+.dark {
+  --background: #050505;
+  --foreground: #ffffff;
+
+  --surface: #0d0d0d;
+  --card: #151515;
+
+  --border: #2a2a2a;
+
+  --gold: #d4af37;
+  --gold-bright: #f5d76e;
+
+  --muted: #a1a1aa;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
+  margin: 0;
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+
+  font-family: var(--font-inter), Arial, sans-serif;
+
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease;
+}
+
+button,
+a,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+::selection {
+  background: var(--gold);
+  color: #000;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--background);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--gold);
+}
+
+/* --------------------------------
+   BookingLK Utilities
+-------------------------------- */
+
+.container-booking {
+  width: min(100% - 32px, 1400px);
+  margin-inline: auto;
+}
+
+.gold-text {
+  color: var(--gold-bright);
+}
+
+.gold-gradient {
+  background: linear-gradient(
+    135deg,
+    #b8860b 0%,
+    #f5d76e 50%,
+    #d4af37 100%
+  );
+
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.glass {
+  background: color-mix(
+    in srgb,
+    var(--card) 72%,
+    transparent
+  );
+
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+
+  border: 1px solid var(--border);
+}
+
+.gold-glow {
+  box-shadow:
+    0 0 0 1px rgba(212, 175, 55, 0.08),
+    0 12px 50px rgba(212, 175, 55, 0.08);
+}
+
+/* --------------------------------
+   Accessibility
+-------------------------------- */
+
+:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
