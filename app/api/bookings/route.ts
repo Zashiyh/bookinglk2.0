@@ -4,32 +4,9 @@ import mongoose from "mongoose";
 import { Booking } from "@/models/Booking";
 import { Hotel } from "@/models/Hotel";
 import { Room } from "@/models/Room";
+import connectDB from "@/lib/db/mongoose";
 
-function getMongoUri(): string {
-  const uri = process.env.MONGODB_URI;
-
-  if (!uri) {
-    throw new Error("MONGODB_URI is not defined in .env.local");
-  }
-
-  return uri;
-}
-
-async function connectMongoDB() {
-  const uri = getMongoUri();
-
-  if (mongoose.connection.readyState === 1) {
-    return;
-  }
-
-  if (mongoose.connection.readyState === 2) {
-    return;
-  }
-
-  await mongoose.connect(uri);
-}
-
-function generateBookingReference() {
+function generateBookingReference(): string {
   const random = Math.random()
     .toString(36)
     .substring(2, 8)
@@ -43,14 +20,13 @@ function generateBookingReference() {
 function calculateNights(
   checkIn: Date,
   checkOut: Date
-) {
+): number {
   const difference =
     checkOut.getTime() -
     checkIn.getTime();
 
   return Math.ceil(
-    difference /
-      (1000 * 60 * 60 * 24)
+    difference / (1000 * 60 * 60 * 24)
   );
 }
 
@@ -58,7 +34,7 @@ export async function POST(
   request: NextRequest
 ) {
   try {
-    await connectMongoDB();
+    await connectDB();
 
     const body = await request.json();
 
@@ -72,16 +48,17 @@ export async function POST(
       specialRequest,
     } = body;
 
-    // -----------------------------
-    // Validate required fields
-    // -----------------------------
+    // --------------------------------
+    // Required fields
+    // --------------------------------
 
     if (
       !hotelId ||
       !roomId ||
       !checkIn ||
       !checkOut ||
-      !guests ||
+      guests === undefined ||
+      guests === null ||
       !guest
     ) {
       return NextResponse.json(
@@ -90,15 +67,13 @@ export async function POST(
           message:
             "Required booking information is missing.",
         },
-        {
-          status: 400,
-        }
+        { status: 400 }
       );
     }
 
-    // -----------------------------
-    // Validate IDs
-    // -----------------------------
+    // --------------------------------
+    // Validate MongoDB IDs
+    // --------------------------------
 
     if (
       !mongoose.Types.ObjectId.isValid(
@@ -114,15 +89,13 @@ export async function POST(
           message:
             "Invalid hotel or room ID.",
         },
-        {
-          status: 400,
-        }
+        { status: 400 }
       );
     }
 
-    // -----------------------------
-    // Validate dates
-    // -----------------------------
+    // --------------------------------
+    // Dates
+    // --------------------------------
 
     const startDate = new Date(checkIn);
     const endDate = new Date(checkOut);
@@ -141,9 +114,7 @@ export async function POST(
           message:
             "Invalid booking dates.",
         },
-        {
-          status: 400,
-        }
+        { status: 400 }
       );
     }
 
@@ -160,15 +131,13 @@ export async function POST(
           message:
             "Check-out must be after check-in.",
         },
-        {
-          status: 400,
-        }
+        { status: 400 }
       );
     }
 
-    // -----------------------------
+    // --------------------------------
     // Prevent past check-in
-    // -----------------------------
+    // --------------------------------
 
     const today = new Date();
 
@@ -186,15 +155,13 @@ export async function POST(
           message:
             "Check-in date cannot be in the past.",
         },
-        {
-          status: 400,
-        }
+        { status: 400 }
       );
     }
 
-    // -----------------------------
-    // Find hotel
-    // -----------------------------
+    // --------------------------------
+    // Find published hotel
+    // --------------------------------
 
     const hotel =
       await Hotel.findOne({
@@ -209,20 +176,21 @@ export async function POST(
           message:
             "Hotel not found or unavailable.",
         },
-        {
-          status: 404,
-        }
+        { status: 404 }
       );
     }
 
-    // -----------------------------
-    // Find room
-    // -----------------------------
+    // --------------------------------
+    // Find active room
+    // --------------------------------
 
     const room =
       await Room.findOne({
         _id: roomId,
-        hotelId: hotel._id,
+        hotelId:
+          new mongoose.Types.ObjectId(
+            hotelId
+          ),
         isActive: true,
       }).lean();
 
@@ -233,17 +201,16 @@ export async function POST(
           message:
             "Selected room is not available.",
         },
-        {
-          status: 404,
-        }
+        { status: 404 }
       );
     }
 
-    // -----------------------------
-    // Validate guests
-    // -----------------------------
+    // --------------------------------
+    // Validate guest count
+    // --------------------------------
 
-    const guestCount = Number(guests);
+    const guestCount =
+      Number(guests);
 
     if (
       !Number.isInteger(
@@ -257,9 +224,7 @@ export async function POST(
           message:
             "Invalid guest count.",
         },
-        {
-          status: 400,
-        }
+        { status: 400 }
       );
     }
 
@@ -272,36 +237,34 @@ export async function POST(
           success: false,
           message: `This room allows a maximum of ${room.maxGuests} guests.`,
         },
-        {
-          status: 400,
-        }
+        { status: 400 }
       );
     }
 
-    // -----------------------------
-    // Validate guest information
-    // -----------------------------
+    // --------------------------------
+    // Guest details
+    // --------------------------------
 
     const firstName =
       String(
-        guest.firstName || ""
+        guest.firstName ?? ""
       ).trim();
 
     const lastName =
       String(
-        guest.lastName || ""
+        guest.lastName ?? ""
       ).trim();
 
     const email =
       String(
-        guest.email || ""
+        guest.email ?? ""
       )
         .trim()
         .toLowerCase();
 
     const phone =
       String(
-        guest.phone || ""
+        guest.phone ?? ""
       ).trim();
 
     if (
@@ -316,19 +279,20 @@ export async function POST(
           message:
             "Guest information is incomplete.",
         },
-        {
-          status: 400,
-        }
+        { status: 400 }
       );
     }
 
-    // -----------------------------
+    // --------------------------------
     // Check room availability
-    // -----------------------------
+    // --------------------------------
 
     const overlappingBookings =
       await Booking.countDocuments({
-        roomId: room._id,
+        roomId:
+          new mongoose.Types.ObjectId(
+            roomId
+          ),
 
         status: {
           $in: [
@@ -356,15 +320,13 @@ export async function POST(
           message:
             "This room is not available for the selected dates.",
         },
-        {
-          status: 409,
-        }
+        { status: 409 }
       );
     }
 
-    // -----------------------------
+    // --------------------------------
     // Calculate price
-    // -----------------------------
+    // --------------------------------
 
     const roomTotal =
       room.pricePerNight *
@@ -379,9 +341,9 @@ export async function POST(
       roomTotal +
       serviceFee;
 
-    // -----------------------------
+    // --------------------------------
     // Create booking
-    // -----------------------------
+    // --------------------------------
 
     const booking =
       await Booking.create({
@@ -413,7 +375,7 @@ export async function POST(
 
         specialRequest:
           String(
-            specialRequest || ""
+            specialRequest ?? ""
           ).trim(),
 
         nights,
@@ -434,9 +396,9 @@ export async function POST(
         paymentStatus: "PENDING",
       });
 
-    // -----------------------------
+    // --------------------------------
     // Response
-    // -----------------------------
+    // --------------------------------
 
     return NextResponse.json(
       {
@@ -446,16 +408,17 @@ export async function POST(
           "Booking created successfully.",
 
         data: {
-          _id: booking._id,
+          _id:
+            booking._id.toString(),
 
           bookingReference:
             booking.bookingReference,
 
           hotelId:
-            booking.hotelId,
+            booking.hotelId.toString(),
 
           roomId:
-            booking.roomId,
+            booking.roomId.toString(),
 
           checkIn:
             booking.checkIn,
@@ -491,9 +454,7 @@ export async function POST(
             booking.paymentStatus,
         },
       },
-      {
-        status: 201,
-      }
+      { status: 201 }
     );
   } catch (error) {
     console.error(
@@ -509,9 +470,7 @@ export async function POST(
             ? error.message
             : "Failed to create booking.",
       },
-      {
-        status: 500,
-      }
+      { status: 500 }
     );
   }
 }

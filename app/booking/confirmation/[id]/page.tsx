@@ -168,53 +168,111 @@ export default function BookingConfirmationPage({
 
     loadBooking();
   }, [params]);
+useEffect(() => {
+  if (!bookingId) return;
 
-  useEffect(() => {
-    if (!bookingId) return;
+  let cancelled = false;
 
-    async function fetchBooking() {
-      try {
-        setLoading(true);
-        setError("");
+  async function confirmAndLoadBooking() {
+    try {
+      setLoading(true);
+      setError("");
 
-        const response = await fetch(
+      // =================================================
+      // STEP 1
+      // CONFIRM BOOKING
+      // =================================================
+
+      const confirmResponse =
+        await fetch(
           `/api/bookings/${encodeURIComponent(
             bookingId
           )}`,
           {
+            method: "PATCH",
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+          }
+        );
+
+      const confirmResult =
+        await confirmResponse.json();
+
+      console.log(
+        "BOOKING CONFIRM RESPONSE:",
+        confirmResult
+      );
+
+      if (
+        !confirmResponse.ok ||
+        !confirmResult.success
+      ) {
+        throw new Error(
+          confirmResult.message ||
+            "Failed to confirm booking."
+        );
+      }
+
+      // =================================================
+      // STEP 2
+      // LOAD BOOKING
+      // =================================================
+
+      const response =
+        await fetch(
+          `/api/bookings/${encodeURIComponent(
+            bookingId
+          )}`,
+          {
+            method: "GET",
             cache: "no-store",
           }
         );
 
-        const result =
-          await response.json();
+      const result =
+        await response.json();
 
-        if (
-          !response.ok ||
-          !result.success
-        ) {
-          throw new Error(
-            result.message ||
-              "Booking not found."
-          );
-        }
+      if (
+        !response.ok ||
+        !result.success
+      ) {
+        throw new Error(
+          result.message ||
+            "Booking not found."
+        );
+      }
 
+      if (!cancelled) {
         setData(result.data);
-      } catch (error) {
-        console.error(error);
+      }
+    } catch (error) {
+      console.error(
+        "CONFIRMATION PAGE ERROR:",
+        error
+      );
 
+      if (!cancelled) {
         setError(
           error instanceof Error
             ? error.message
             : "Unable to load your booking."
         );
-      } finally {
+      }
+    } finally {
+      if (!cancelled) {
         setLoading(false);
       }
     }
+  }
 
-    fetchBooking();
-  }, [bookingId]);
+  confirmAndLoadBooking();
+
+  return () => {
+    cancelled = true;
+  };
+}, [bookingId]);
 
   async function copyReference() {
     if (!data?.booking.bookingReference)
