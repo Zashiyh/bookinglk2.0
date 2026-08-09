@@ -133,7 +133,7 @@ export default function HotelDetailsPage({
     useState(0);
 
   useEffect(() => {
-    async function loadPage() {
+    async function resolveSlug() {
       try {
         const resolvedParams =
           await params;
@@ -142,10 +142,11 @@ export default function HotelDetailsPage({
       } catch (error) {
         console.error(error);
         setError("Invalid hotel URL.");
+        setLoading(false);
       }
     }
 
-    loadPage();
+    resolveSlug();
   }, [params]);
 
   useEffect(() => {
@@ -157,22 +158,16 @@ export default function HotelDetailsPage({
         setError("");
 
         const response = await fetch(
-          `/api/hotels/${slug}`,
+          `/api/hotels/${encodeURIComponent(slug)}`,
           {
             cache: "no-store",
           }
         );
 
-        if (!response.ok) {
-          throw new Error(
-            "Hotel not found"
-          );
-        }
-
         const result =
           await response.json();
 
-        if (!result.success) {
+        if (!response.ok || !result.success) {
           throw new Error(
             result.message ||
               "Hotel not found"
@@ -180,8 +175,11 @@ export default function HotelDetailsPage({
         }
 
         setHotel(result.data);
+        setActiveImage(0);
       } catch (error) {
         console.error(error);
+
+        setHotel(null);
 
         setError(
           "We couldn't load this hotel."
@@ -196,32 +194,31 @@ export default function HotelDetailsPage({
         setRoomsLoading(true);
 
         const response = await fetch(
-          `/api/hotels/${slug}/rooms`,
+          `/api/hotels/${encodeURIComponent(
+            slug
+          )}/rooms`,
           {
             cache: "no-store",
           }
         );
 
-        if (!response.ok) {
-          throw new Error(
-            "Failed to load rooms"
-          );
-        }
-
         const result =
           await response.json();
 
-        if (!result.success) {
+        if (!response.ok || !result.success) {
           throw new Error(
             result.message ||
               "Failed to load rooms"
           );
         }
 
-        setRooms(result.data);
+        setRooms(
+          Array.isArray(result.data)
+            ? result.data
+            : []
+        );
       } catch (error) {
         console.error(error);
-
         setRooms([]);
       } finally {
         setRoomsLoading(false);
@@ -233,10 +230,8 @@ export default function HotelDetailsPage({
   }, [slug]);
 
   const galleryImages = useMemo(() => {
-    if (!hotel) return [];
-
     if (
-      hotel.images &&
+      hotel?.images &&
       hotel.images.length > 0
     ) {
       return hotel.images;
@@ -253,6 +248,17 @@ export default function HotelDetailsPage({
     ).format(price);
   }
 
+  function formatPropertyType(
+    type: string
+  ) {
+    return type
+      .replaceAll("_", " ")
+      .toLowerCase()
+      .replace(/\b\w/g, (letter) =>
+        letter.toUpperCase()
+      );
+  }
+
   function formatRoomType(
     type: string
   ) {
@@ -267,13 +273,19 @@ export default function HotelDetailsPage({
   function formatBed(
     beds: Room["beds"]
   ) {
+    if (!beds?.length) {
+      return "Bed information unavailable";
+    }
+
     return beds
       .map((bed) => {
         const type =
           bed.type
             .toLowerCase()
-            .replace(/\b\w/g, (letter) =>
-              letter.toUpperCase()
+            .replace(
+              /\b\w/g,
+              (letter) =>
+                letter.toUpperCase()
             );
 
         return `${bed.count} ${type}`;
@@ -283,17 +295,24 @@ export default function HotelDetailsPage({
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-[#fafafa] dark:bg-[#050505]">
+      <main className="min-h-screen bg-[#fafafa] text-zinc-950 dark:bg-[#050505] dark:text-white">
         <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-          <div className="animate-pulse space-y-8">
-            <div className="h-6 w-32 rounded bg-zinc-200 dark:bg-white/10" />
+          <div className="mb-8 h-5 w-32 animate-pulse rounded-full bg-zinc-200 dark:bg-white/10" />
 
-            <div className="h-[420px] rounded-3xl bg-zinc-200 dark:bg-white/10" />
+          <div className="h-10 w-2/3 animate-pulse rounded-xl bg-zinc-200 dark:bg-white/10" />
 
-            <div className="space-y-4">
-              <div className="h-10 w-2/3 rounded bg-zinc-200 dark:bg-white/10" />
-              <div className="h-5 w-1/3 rounded bg-zinc-200 dark:bg-white/10" />
+          <div className="mt-4 h-5 w-1/3 animate-pulse rounded-xl bg-zinc-200 dark:bg-white/10" />
+
+          <div className="mt-8 h-[320px] animate-pulse rounded-[2rem] bg-zinc-200 dark:bg-white/10 sm:h-[460px] lg:h-[560px]" />
+
+          <div className="mt-10 grid gap-10 lg:grid-cols-[1fr_360px]">
+            <div className="space-y-5">
+              <div className="h-8 w-56 animate-pulse rounded bg-zinc-200 dark:bg-white/10" />
+              <div className="h-32 animate-pulse rounded-3xl bg-zinc-200 dark:bg-white/10" />
+              <div className="h-48 animate-pulse rounded-3xl bg-zinc-200 dark:bg-white/10" />
             </div>
+
+            <div className="h-72 animate-pulse rounded-3xl bg-zinc-200 dark:bg-white/10" />
           </div>
         </div>
       </main>
@@ -302,17 +321,17 @@ export default function HotelDetailsPage({
 
   if (error || !hotel) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[#fafafa] px-4 dark:bg-[#050505]">
-        <div className="w-full max-w-lg rounded-3xl border border-zinc-200 bg-white p-10 text-center shadow-sm dark:border-white/10 dark:bg-[#111111]">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-500/10 text-red-500">
-            <MapPin className="h-7 w-7" />
+      <main className="flex min-h-screen items-center justify-center bg-[#fafafa] px-4 text-zinc-950 dark:bg-[#050505] dark:text-white">
+        <div className="w-full max-w-lg rounded-[2rem] border border-zinc-200 bg-white p-10 text-center shadow-xl dark:border-white/10 dark:bg-[#111111]">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#D4AF37]/10">
+            <MapPin className="h-7 w-7 text-[#D4AF37]" />
           </div>
 
-          <h1 className="mt-6 text-2xl font-semibold">
+          <h1 className="mt-6 text-3xl font-semibold">
             Hotel not found
           </h1>
 
-          <p className="mt-3 text-sm text-zinc-500 dark:text-zinc-400">
+          <p className="mt-3 text-sm leading-6 text-zinc-500 dark:text-zinc-400">
             {error ||
               "This property may no longer be available."}
           </p>
@@ -330,27 +349,31 @@ export default function HotelDetailsPage({
   }
 
   return (
-    <main className="min-h-screen bg-[#fafafa] text-zinc-950 dark:bg-[#050505] dark:text-white">
+    <main className="min-h-screen overflow-hidden bg-[#fafafa] text-zinc-950 dark:bg-[#050505] dark:text-white">
+      {/* Background glow */}
+      <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
+        <div className="absolute left-[-15%] top-[5%] h-[420px] w-[420px] rounded-full bg-[#D4AF37]/5 blur-[120px]" />
+        <div className="absolute right-[-15%] top-[30%] h-[500px] w-[500px] rounded-full bg-purple-500/5 blur-[140px]" />
+      </div>
+
       {/* Top navigation */}
-      <section className="border-b border-zinc-200 dark:border-white/10">
-        <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
-          <Link
-            href="/hotels"
-            className="inline-flex items-center gap-2 text-sm font-medium text-zinc-500 transition hover:text-[#B8860B] dark:text-zinc-400 dark:hover:text-[#F5D76E]"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to hotels
-          </Link>
-        </div>
+      <section className="mx-auto max-w-7xl px-4 pt-6 sm:px-6 lg:px-8">
+        <Link
+          href="/hotels"
+          className="group inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-4 py-2.5 text-sm font-medium shadow-sm transition hover:-translate-x-0.5 hover:border-[#D4AF37] dark:border-white/10 dark:bg-[#111111]"
+        >
+          <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
+          Back to hotels
+        </Link>
       </section>
 
       {/* Hotel Header */}
       <section className="mx-auto max-w-7xl px-4 pt-8 sm:px-6 lg:px-8">
-        <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
+        <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
           <div>
-            <div className="mb-3 flex flex-wrap items-center gap-2">
+            <div className="mb-4 flex flex-wrap items-center gap-2">
               <span className="rounded-full bg-[#D4AF37]/10 px-3 py-1.5 text-xs font-semibold text-[#B8860B] dark:text-[#F5D76E]">
-                {formatRoomType(
+                {formatPropertyType(
                   hotel.propertyType
                 )}
               </span>
@@ -363,23 +386,31 @@ export default function HotelDetailsPage({
               )}
             </div>
 
-            <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">
+            <h1 className="max-w-4xl text-4xl font-semibold tracking-tight sm:text-5xl lg:text-6xl">
               {hotel.name}
             </h1>
 
-            <div className="mt-4 flex flex-wrap items-center gap-4 text-sm text-zinc-500 dark:text-zinc-400">
+            <div className="mt-5 flex flex-wrap items-center gap-4 text-sm text-zinc-500 dark:text-zinc-400">
               <span className="inline-flex items-center gap-1.5">
                 <MapPin className="h-4 w-4 text-[#D4AF37]" />
                 {hotel.location.city},{" "}
                 {hotel.location.district}
               </span>
 
+              <span className="hidden h-4 w-px bg-zinc-300 dark:bg-white/10 sm:block" />
+
               <span className="inline-flex items-center gap-1.5">
                 <Star className="h-4 w-4 fill-[#D4AF37] text-[#D4AF37]" />
+
                 <strong className="text-zinc-900 dark:text-white">
-                  {hotel.rating.toFixed(1)}
+                  {hotel.rating.toFixed(
+                    1
+                  )}
                 </strong>
-                ({hotel.reviewCount} reviews)
+
+                <span>
+                  ({hotel.reviewCount} reviews)
+                </span>
               </span>
             </div>
           </div>
@@ -391,7 +422,7 @@ export default function HotelDetailsPage({
                 (value) => !value
               )
             }
-            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-zinc-200 bg-white transition hover:scale-105 dark:border-white/10 dark:bg-[#111111]"
+            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-zinc-200 bg-white shadow-sm transition hover:scale-105 hover:border-[#D4AF37] dark:border-white/10 dark:bg-[#111111]"
             aria-label={
               favorite
                 ? "Remove from favorites"
@@ -399,7 +430,7 @@ export default function HotelDetailsPage({
             }
           >
             <Heart
-              className={`h-5 w-5 ${
+              className={`h-5 w-5 transition ${
                 favorite
                   ? "fill-[#D4AF37] text-[#D4AF37]"
                   : ""
@@ -411,17 +442,20 @@ export default function HotelDetailsPage({
 
       {/* Gallery */}
       <section className="mx-auto mt-8 max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="relative overflow-hidden rounded-3xl border border-black/10 bg-zinc-100 dark:border-white/10 dark:bg-[#111111]">
-          <div className="relative h-[300px] sm:h-[420px] lg:h-[560px]">
+        <div className="relative overflow-hidden rounded-[2rem] border border-black/10 bg-zinc-100 shadow-2xl dark:border-white/10 dark:bg-[#111111]">
+          <div className="relative h-[300px] sm:h-[430px] lg:h-[580px]">
             <img
-              src={galleryImages[activeImage]}
+              src={
+                galleryImages[activeImage]
+              }
               alt={hotel.name}
               className="h-full w-full object-cover"
             />
 
-            <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/10" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/5 to-black/20" />
 
-            {galleryImages.length > 1 && (
+            {galleryImages.length >
+              1 && (
               <>
                 <button
                   type="button"
@@ -434,7 +468,7 @@ export default function HotelDetailsPage({
                           : current - 1
                     )
                   }
-                  className="absolute left-4 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-md transition hover:bg-black/60"
+                  className="absolute left-4 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/20 bg-black/30 text-white backdrop-blur-xl transition hover:scale-105 hover:bg-black/50"
                   aria-label="Previous image"
                 >
                   <ChevronLeft className="h-5 w-5" />
@@ -452,7 +486,7 @@ export default function HotelDetailsPage({
                           : current + 1
                     )
                   }
-                  className="absolute right-4 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-md transition hover:bg-black/60"
+                  className="absolute right-4 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/20 bg-black/30 text-white backdrop-blur-xl transition hover:scale-105 hover:bg-black/50"
                   aria-label="Next image"
                 >
                   <ChevronRight className="h-5 w-5" />
@@ -460,7 +494,7 @@ export default function HotelDetailsPage({
               </>
             )}
 
-            <div className="absolute bottom-5 left-5 rounded-full bg-black/50 px-4 py-2 text-xs font-medium text-white backdrop-blur-md">
+            <div className="absolute bottom-5 left-5 rounded-full border border-white/20 bg-black/40 px-4 py-2 text-xs font-medium text-white backdrop-blur-xl">
               {activeImage + 1} /{" "}
               {galleryImages.length}
             </div>
@@ -476,15 +510,17 @@ export default function HotelDetailsPage({
                     onClick={() =>
                       setActiveImage(index)
                     }
-                    className={`h-20 w-28 shrink-0 overflow-hidden rounded-xl border-2 ${
+                    className={`h-20 w-28 shrink-0 overflow-hidden rounded-xl border-2 transition ${
                       activeImage === index
-                        ? "border-[#D4AF37]"
-                        : "border-transparent"
+                        ? "border-[#D4AF37] opacity-100"
+                        : "border-transparent opacity-60 hover:opacity-100"
                     }`}
                   >
                     <img
                       src={image}
-                      alt={`${hotel.name} ${index + 1}`}
+                      alt={`${hotel.name} ${
+                        index + 1
+                      }`}
                       className="h-full w-full object-cover"
                     />
                   </button>
@@ -495,31 +531,37 @@ export default function HotelDetailsPage({
         </div>
       </section>
 
-      {/* Main content */}
-      <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+      {/* Main */}
+      <section className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
         <div className="grid gap-12 lg:grid-cols-[1fr_360px]">
           {/* Left */}
           <div className="min-w-0">
             {/* About */}
             <section>
-              <h2 className="text-2xl font-semibold">
-                About this property
-              </h2>
+              <div className="flex items-center gap-3">
+                <div className="h-8 w-1 rounded-full bg-[#D4AF37]" />
 
-              <p className="mt-4 max-w-3xl whitespace-pre-line leading-8 text-zinc-600 dark:text-zinc-400">
+                <h2 className="text-2xl font-semibold">
+                  About this property
+                </h2>
+              </div>
+
+              <p className="mt-5 max-w-3xl whitespace-pre-line text-[15px] leading-8 text-zinc-600 dark:text-zinc-400">
                 {hotel.description}
               </p>
 
-              <div className="mt-6 rounded-2xl border border-zinc-200 bg-white p-5 dark:border-white/10 dark:bg-[#111111]">
+              <div className="mt-7 rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-[#111111]">
                 <div className="flex items-start gap-4">
-                  <MapPin className="mt-1 h-5 w-5 shrink-0 text-[#D4AF37]" />
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#D4AF37]/10">
+                    <MapPin className="h-5 w-5 text-[#D4AF37]" />
+                  </div>
 
                   <div>
                     <p className="font-medium">
                       {hotel.location.address}
                     </p>
 
-                    <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                    <p className="mt-1.5 text-sm leading-6 text-zinc-500 dark:text-zinc-400">
                       {hotel.location.city},{" "}
                       {hotel.location.district},{" "}
                       {hotel.location.province},{" "}
@@ -531,16 +573,23 @@ export default function HotelDetailsPage({
             </section>
 
             {/* Amenities */}
-            <section className="mt-12">
-              <h2 className="text-2xl font-semibold">
-                Amenities
-              </h2>
+            <section className="mt-14">
+              <div className="flex items-center gap-3">
+                <div className="h-8 w-1 rounded-full bg-[#D4AF37]" />
+
+                <h2 className="text-2xl font-semibold">
+                  Amenities
+                </h2>
+              </div>
 
               {hotel.amenities.length >
               0 ? (
                 <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
                   {hotel.amenities.map(
-                    (amenity, index) => {
+                    (
+                      amenity,
+                      index
+                    ) => {
                       const Icon =
                         amenityIcons[
                           index %
@@ -550,9 +599,9 @@ export default function HotelDetailsPage({
                       return (
                         <div
                           key={`${amenity}-${index}`}
-                          className="flex items-center gap-3 rounded-2xl border border-zinc-200 bg-white p-4 dark:border-white/10 dark:bg-[#111111]"
+                          className="group flex items-center gap-3 rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm transition hover:-translate-y-1 hover:border-[#D4AF37]/40 dark:border-white/10 dark:bg-[#111111]"
                         >
-                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#D4AF37]/10">
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#D4AF37]/10">
                             <Icon className="h-4 w-4 text-[#B8860B] dark:text-[#F5D76E]" />
                           </div>
 
@@ -565,21 +614,28 @@ export default function HotelDetailsPage({
                   )}
                 </div>
               ) : (
-                <p className="mt-4 text-sm text-zinc-500">
+                <p className="mt-5 text-sm text-zinc-500">
                   No amenities listed.
                 </p>
               )}
             </section>
 
             {/* Rooms */}
-            <section className="mt-14" id="rooms">
+            <section
+              className="mt-16"
+              id="rooms"
+            >
               <div className="flex items-end justify-between gap-4">
                 <div>
-                  <h2 className="text-2xl font-semibold">
-                    Available rooms
-                  </h2>
+                  <div className="flex items-center gap-3">
+                    <div className="h-8 w-1 rounded-full bg-[#D4AF37]" />
 
-                  <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
+                    <h2 className="text-2xl font-semibold">
+                      Available rooms
+                    </h2>
+                  </div>
+
+                  <p className="mt-3 text-sm text-zinc-500 dark:text-zinc-400">
                     Choose the room that best
                     fits your stay.
                   </p>
@@ -593,19 +649,21 @@ export default function HotelDetailsPage({
               </div>
 
               {roomsLoading ? (
-                <div className="mt-6 space-y-4">
+                <div className="mt-6 space-y-5">
                   {Array.from({
                     length: 3,
                   }).map((_, index) => (
                     <div
                       key={index}
-                      className="h-56 animate-pulse rounded-3xl bg-zinc-200 dark:bg-white/10"
+                      className="h-64 animate-pulse rounded-3xl bg-zinc-200 dark:bg-white/10"
                     />
                   ))}
                 </div>
               ) : rooms.length === 0 ? (
                 <div className="mt-6 rounded-3xl border border-dashed border-zinc-300 bg-white p-10 text-center dark:border-white/10 dark:bg-[#111111]">
-                  <BedDouble className="mx-auto h-8 w-8 text-[#D4AF37]" />
+                  <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#D4AF37]/10">
+                    <BedDouble className="h-7 w-7 text-[#D4AF37]" />
+                  </div>
 
                   <h3 className="mt-4 font-semibold">
                     No rooms available
@@ -621,41 +679,43 @@ export default function HotelDetailsPage({
                   {rooms.map((room) => (
                     <article
                       key={room._id}
-                      className="overflow-hidden rounded-3xl border border-zinc-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#111111]"
+                      className="group overflow-hidden rounded-[2rem] border border-zinc-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl dark:border-white/10 dark:bg-[#111111]"
                     >
-                      <div className="grid md:grid-cols-[260px_1fr]">
-                        {/* Room image */}
-                        <div className="relative min-h-[220px] bg-zinc-100 dark:bg-[#181818]">
+                      <div className="grid md:grid-cols-[280px_1fr]">
+                        {/* Room Image */}
+                        <div className="relative min-h-[240px] overflow-hidden bg-zinc-100 dark:bg-[#181818]">
                           <img
                             src={
                               room.images?.[0] ||
                               "/images/hotel-placeholder.jpg"
                             }
                             alt={room.name}
-                            className="absolute inset-0 h-full w-full object-cover"
+                            className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-105"
                           />
 
-                          <div className="absolute left-4 top-4 rounded-full bg-black/50 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur-md">
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+
+                          <div className="absolute left-4 top-4 rounded-full border border-white/20 bg-black/40 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur-xl">
                             {formatRoomType(
                               room.roomType
                             )}
                           </div>
                         </div>
 
-                        {/* Room details */}
-                        <div className="p-6">
+                        {/* Room Details */}
+                        <div className="p-6 lg:p-7">
                           <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
                             <div>
                               <h3 className="text-xl font-semibold">
                                 {room.name}
                               </h3>
 
-                              <p className="mt-2 text-sm leading-6 text-zinc-500 dark:text-zinc-400">
+                              <p className="mt-2 max-w-xl text-sm leading-6 text-zinc-500 dark:text-zinc-400">
                                 {room.description}
                               </p>
                             </div>
 
-                            <div className="shrink-0">
+                            <div className="shrink-0 sm:text-right">
                               <p className="text-xs text-zinc-500">
                                 From
                               </p>
@@ -673,15 +733,15 @@ export default function HotelDetailsPage({
                             </div>
                           </div>
 
-                          <div className="mt-5 flex flex-wrap gap-3 text-sm text-zinc-600 dark:text-zinc-400">
-                            <span className="inline-flex items-center gap-2 rounded-full bg-zinc-100 px-3 py-2 dark:bg-white/5">
+                          <div className="mt-5 flex flex-wrap gap-2">
+                            <span className="inline-flex items-center gap-2 rounded-full bg-zinc-100 px-3 py-2 text-sm text-zinc-600 dark:bg-white/5 dark:text-zinc-400">
                               <BedDouble className="h-4 w-4" />
                               {formatBed(
                                 room.beds
                               )}
                             </span>
 
-                            <span className="inline-flex items-center gap-2 rounded-full bg-zinc-100 px-3 py-2 dark:bg-white/5">
+                            <span className="inline-flex items-center gap-2 rounded-full bg-zinc-100 px-3 py-2 text-sm text-zinc-600 dark:bg-white/5 dark:text-zinc-400">
                               <Users className="h-4 w-4" />
                               Up to{" "}
                               {room.maxGuests}{" "}
@@ -689,7 +749,7 @@ export default function HotelDetailsPage({
                             </span>
 
                             {room.size && (
-                              <span className="inline-flex items-center gap-2 rounded-full bg-zinc-100 px-3 py-2 dark:bg-white/5">
+                              <span className="inline-flex items-center gap-2 rounded-full bg-zinc-100 px-3 py-2 text-sm text-zinc-600 dark:bg-white/5 dark:text-zinc-400">
                                 <Maximize className="h-4 w-4" />
                                 {room.size} m²
                               </span>
@@ -698,11 +758,11 @@ export default function HotelDetailsPage({
 
                           {room.amenities.length >
                             0 && (
-                            <div className="mt-5 flex flex-wrap gap-x-5 gap-y-2">
+                            <div className="mt-5 grid grid-cols-1 gap-2 sm:grid-cols-2">
                               {room.amenities
                                 .slice(
                                   0,
-                                  5
+                                  6
                                 )
                                 .map(
                                   (
@@ -724,19 +784,23 @@ export default function HotelDetailsPage({
                             </div>
                           )}
 
-                          <div className="mt-6 flex flex-col gap-3 border-t border-zinc-200 pt-5 sm:flex-row sm:items-center sm:justify-between dark:border-white/10">
+                          <div className="mt-6 flex flex-col gap-4 border-t border-zinc-200 pt-5 sm:flex-row sm:items-center sm:justify-between dark:border-white/10">
                             <p className="text-xs text-zinc-500">
                               {room.totalRooms}{" "}
                               rooms available
-                              in this property
                             </p>
 
                             <Link
-                              href={`/booking/checkout?hotel=${hotel.slug}&room=${room._id}`}
-                              className="inline-flex items-center justify-center gap-2 rounded-full bg-[#D4AF37] px-6 py-3 text-sm font-semibold text-black transition hover:bg-[#F5D76E]"
+                              href={`/booking/checkout?hotel=${encodeURIComponent(
+                                hotel.slug
+                              )}&room=${encodeURIComponent(
+                                room._id
+                              )}`}
+                              className="group/button inline-flex items-center justify-center gap-2 rounded-full bg-[#D4AF37] px-6 py-3 text-sm font-semibold text-black transition hover:bg-[#F5D76E]"
                             >
                               Book this room
-                              <ArrowUpRight className="h-4 w-4" />
+
+                              <ArrowUpRight className="h-4 w-4 transition-transform group-hover/button:-translate-y-0.5 group-hover/button:translate-x-0.5" />
                             </Link>
                           </div>
                         </div>
@@ -748,24 +812,32 @@ export default function HotelDetailsPage({
             </section>
           </div>
 
-          {/* Booking card */}
+          {/* Booking Card */}
           <aside className="lg:sticky lg:top-24 lg:h-fit">
-            <div className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-[#111111]">
-              <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                Starting from
-              </p>
+            <div className="rounded-[2rem] border border-zinc-200 bg-white p-6 shadow-xl dark:border-white/10 dark:bg-[#111111]">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                    Starting from
+                  </p>
 
-              <div className="mt-1 flex items-baseline gap-2">
-                <span className="text-3xl font-semibold">
-                  LKR{" "}
-                  {formatPrice(
-                    hotel.priceFrom
-                  )}
-                </span>
+                  <div className="mt-1 flex items-baseline gap-2">
+                    <span className="text-3xl font-semibold">
+                      LKR{" "}
+                      {formatPrice(
+                        hotel.priceFrom
+                      )}
+                    </span>
 
-                <span className="text-sm text-zinc-500">
-                  / night
-                </span>
+                    <span className="text-sm text-zinc-500">
+                      / night
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#D4AF37]/10">
+                  <Star className="h-5 w-5 fill-[#D4AF37] text-[#D4AF37]" />
+                </div>
               </div>
 
               <div className="mt-6 space-y-3 rounded-2xl bg-zinc-50 p-4 dark:bg-white/5">
@@ -805,13 +877,18 @@ export default function HotelDetailsPage({
 
               <a
                 href="#rooms"
-                className="mt-6 flex w-full items-center justify-center gap-2 rounded-2xl bg-[#D4AF37] py-3.5 text-sm font-semibold text-black transition hover:bg-[#F5D76E]"
+                className="mt-6 flex w-full items-center justify-center gap-2 rounded-2xl bg-[#D4AF37] py-3.5 text-sm font-semibold text-black transition hover:bg-[#F5D76E] hover:shadow-lg"
               >
                 View available rooms
                 <ArrowUpRight className="h-4 w-4" />
               </a>
 
-              <p className="mt-4 text-center text-xs text-zinc-500">
+              <div className="mt-5 flex items-center justify-center gap-2 text-xs text-zinc-500">
+                <ShieldCheck className="h-3.5 w-3.5 text-[#D4AF37]" />
+                Secure booking
+              </div>
+
+              <p className="mt-2 text-center text-xs text-zinc-500">
                 You won't be charged yet.
               </p>
             </div>
@@ -821,4 +898,3 @@ export default function HotelDetailsPage({
     </main>
   );
 }
-

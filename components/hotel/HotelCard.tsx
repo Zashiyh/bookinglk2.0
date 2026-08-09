@@ -1,3 +1,4 @@
+
 "use client";
 
 import { motion } from "framer-motion";
@@ -10,6 +11,9 @@ import {
   Car,
   Utensils,
   ArrowUpRight,
+  Dumbbell,
+  Coffee,
+  Sparkles,
 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
@@ -42,6 +46,7 @@ export interface HotelCardData {
   currency: "LKR";
 
   amenities: string[];
+
   images: string[];
 
   isVerified: boolean;
@@ -52,12 +57,60 @@ interface HotelCardProps {
   hotel: HotelCardData;
 }
 
-const amenityIcons = [
-  Wifi,
-  Waves,
-  Car,
-  Utensils,
-];
+function getAmenityIcon(amenity: string) {
+  const value = amenity.toLowerCase();
+
+  if (value.includes("wifi") || value.includes("wi-fi")) {
+    return Wifi;
+  }
+
+  if (
+    value.includes("pool") ||
+    value.includes("beach") ||
+    value.includes("water")
+  ) {
+    return Waves;
+  }
+
+  if (
+    value.includes("parking") ||
+    value.includes("car") ||
+    value.includes("shuttle")
+  ) {
+    return Car;
+  }
+
+  if (
+    value.includes("restaurant") ||
+    value.includes("food") ||
+    value.includes("dining")
+  ) {
+    return Utensils;
+  }
+
+  if (
+    value.includes("gym") ||
+    value.includes("fitness")
+  ) {
+    return Dumbbell;
+  }
+
+  if (
+    value.includes("breakfast") ||
+    value.includes("coffee")
+  ) {
+    return Coffee;
+  }
+
+  if (
+    value.includes("spa") ||
+    value.includes("luxury")
+  ) {
+    return Sparkles;
+  }
+
+  return Sparkles;
+}
 
 export default function HotelCard({
   hotel,
@@ -65,13 +118,23 @@ export default function HotelCard({
   const [favorite, setFavorite] = useState(false);
 
   const image =
-    hotel.images?.[0] ||
-    "/images/hotel-placeholder.jpg";
+    hotel.images?.length > 0
+      ? hotel.images[0]
+      : "/images/hotel-placeholder.jpg";
 
-  const formattedPrice =
-    new Intl.NumberFormat("en-LK").format(
-      hotel.priceFrom
-    );
+  const formattedPrice = new Intl.NumberFormat(
+    "en-LK"
+  ).format(hotel.priceFrom);
+
+  const rating =
+    typeof hotel.rating === "number"
+      ? hotel.rating
+      : 0;
+
+  const reviewCount =
+    typeof hotel.reviewCount === "number"
+      ? hotel.reviewCount
+      : 0;
 
   return (
     <motion.article
@@ -84,7 +147,7 @@ export default function HotelCard({
         y: 0,
       }}
       whileHover={{
-        y: -5,
+        y: -6,
       }}
       transition={{
         duration: 0.3,
@@ -96,8 +159,11 @@ export default function HotelCard({
         <img
           src={image}
           alt={hotel.name}
-          className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-          loading="lazy"
+          className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
+          onError={(event) => {
+            event.currentTarget.src =
+              "/images/hotel-placeholder.jpg";
+          }}
         />
 
         {/* Gradient */}
@@ -117,7 +183,7 @@ export default function HotelCard({
           className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-black/30 text-white backdrop-blur-md transition hover:scale-105"
         >
           <Heart
-            className={`h-5 w-5 transition ${
+            className={`h-5 w-5 ${
               favorite
                 ? "fill-current text-[#D4AF37]"
                 : ""
@@ -132,12 +198,10 @@ export default function HotelCard({
           </div>
         )}
 
-        {/* Property Type */}
+        {/* Property type */}
         <div className="absolute bottom-4 left-4 rounded-full bg-white/90 px-3 py-1.5 text-xs font-semibold text-black backdrop-blur">
-          {hotel.propertyType.replaceAll(
-            "_",
-            " "
-          )}
+          {hotel.propertyType
+            .replaceAll("_", " ")}
         </div>
       </div>
 
@@ -145,7 +209,7 @@ export default function HotelCard({
       <div className="p-5">
         {/* Location */}
         <div className="mb-2 flex items-center gap-1.5 text-sm text-zinc-500 dark:text-zinc-400">
-          <MapPin className="h-4 w-4 text-[#D4AF37]" />
+          <MapPin className="h-4 w-4" />
 
           <span>
             {hotel.location.city},{" "}
@@ -163,38 +227,35 @@ export default function HotelCard({
           <div className="flex items-center gap-1 rounded-full bg-[#D4AF37]/10 px-2.5 py-1 text-sm font-semibold text-[#B8860B] dark:text-[#F5D76E]">
             <Star className="h-4 w-4 fill-current" />
 
-            {hotel.rating.toFixed(1)}
+            {rating.toFixed(1)}
           </div>
 
           <span className="text-sm text-zinc-500 dark:text-zinc-400">
-            {hotel.reviewCount.toLocaleString()}{" "}
-            reviews
+            {reviewCount.toLocaleString()} reviews
           </span>
         </div>
 
         {/* Amenities */}
-        <div className="mt-4 flex items-center gap-3">
-          {hotel.amenities
-            ?.slice(0, 4)
-            .map((amenity, index) => {
-              const Icon =
-                amenityIcons[index];
+        {hotel.amenities?.length > 0 && (
+          <div className="mt-4 flex items-center gap-3">
+            {hotel.amenities
+              .slice(0, 4)
+              .map((amenity) => {
+                const Icon =
+                  getAmenityIcon(amenity);
 
-              if (!Icon) {
-                return null;
-              }
-
-              return (
-                <div
-                  key={`${amenity}-${index}`}
-                  title={amenity}
-                  className="flex h-8 w-8 items-center justify-center rounded-full bg-zinc-100 text-zinc-600 dark:bg-white/5 dark:text-zinc-300"
-                >
-                  <Icon className="h-4 w-4" />
-                </div>
-              );
-            })}
-        </div>
+                return (
+                  <div
+                    key={amenity}
+                    title={amenity}
+                    className="flex h-8 w-8 items-center justify-center rounded-full bg-zinc-100 text-zinc-600 dark:bg-white/5 dark:text-zinc-300"
+                  >
+                    <Icon className="h-4 w-4" />
+                  </div>
+                );
+              })}
+          </div>
+        )}
 
         {/* Bottom */}
         <div className="mt-5 flex items-end justify-between gap-4 border-t border-zinc-200 pt-4 dark:border-white/10">
@@ -205,8 +266,7 @@ export default function HotelCard({
 
             <div className="mt-0.5 flex items-baseline gap-1">
               <span className="text-lg font-semibold text-zinc-950 dark:text-white">
-                {hotel.currency}{" "}
-                {formattedPrice}
+                LKR {formattedPrice}
               </span>
 
               <span className="text-xs text-zinc-500">
@@ -215,7 +275,6 @@ export default function HotelCard({
             </div>
           </div>
 
-          {/* Hotel Details */}
           <Link
             href={`/hotels/${hotel.slug}`}
             className="group/button flex items-center gap-1.5 rounded-full bg-[#D4AF37] px-4 py-2.5 text-sm font-semibold text-black transition hover:bg-[#F5D76E]"
@@ -229,3 +288,4 @@ export default function HotelCard({
     </motion.article>
   );
 }
+
