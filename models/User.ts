@@ -1,6 +1,16 @@
-import mongoose, { Schema, Document, Model } from "mongoose";
 
-export type UserRole = "USER" | "ADMIN";
+import mongoose, {
+  Schema,
+  Document,
+  Model,
+} from "mongoose";
+
+export type UserRole =
+  | "USER"
+  | "HOTEL_OWNER"
+  | "HOTEL_MANAGER"
+  | "ADMIN"
+  | "SUPER_ADMIN";
 
 export interface IUser extends Document {
   firstName: string;
@@ -8,13 +18,19 @@ export interface IUser extends Document {
   email: string;
   password: string;
   phone?: string;
+
   role: UserRole;
+
+  avatar?: string;
+
   isActive: boolean;
+  isEmailVerified: boolean;
+
   createdAt: Date;
   updatedAt: Date;
 }
 
-const UserSchema = new Schema<IUser>(
+const UserSchema = new Schema(
   {
     firstName: {
       type: String,
@@ -53,13 +69,31 @@ const UserSchema = new Schema<IUser>(
 
     role: {
       type: String,
-      enum: ["USER", "ADMIN"],
+      enum: [
+        "USER",
+        "HOTEL_OWNER",
+        "HOTEL_MANAGER",
+        "ADMIN",
+        "SUPER_ADMIN",
+      ],
       default: "USER",
+      index: true,
+    },
+
+    avatar: {
+      type: String,
+      default: null,
     },
 
     isActive: {
       type: Boolean,
       default: true,
+      index: true,
+    },
+
+    isEmailVerified: {
+      type: Boolean,
+      default: false,
     },
   },
   {
@@ -70,3 +104,4 @@ const UserSchema = new Schema<IUser>(
 export const User: Model<IUser> =
   mongoose.models.User ||
   mongoose.model<IUser>("User", UserSchema);
+
