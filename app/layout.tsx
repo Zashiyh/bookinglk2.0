@@ -1,54 +1,26 @@
 import type { Metadata } from "next";
-import { Inter, Manrope } from "next/font/google";
+import { Manrope, Inter } from "next/font/google";
 
 import "./globals.css";
 
 import { ThemeProvider } from "@/components/providers/theme-provider";
-
-const inter = Inter({
-  variable: "--font-inter",
-  subsets: ["latin"],
-});
+import { Navbar } from "@/components/navbar/navbar";
+import { Footer } from "@/components/footer/footer";
 
 const manrope = Manrope({
   variable: "--font-manrope",
   subsets: ["latin"],
 });
 
+const inter = Inter({
+  variable: "--font-inter",
+  subsets: ["latin"],
+});
+
 export const metadata: Metadata = {
-  title: {
-    default: "BookingLK — Discover Sri Lanka. Stay Your Way.",
-    template: "%s | BookingLK",
-  },
-
+  title: "BookingLK",
   description:
-    "Discover hotels, resorts, villas, apartments and unique stays across Sri Lanka with BookingLK.",
-
-  keywords: [
-    "Sri Lanka hotels",
-    "Sri Lanka hotel booking",
-    "Kandy hotels",
-    "Colombo hotels",
-    "Ella hotels",
-    "Galle hotels",
-    "BookingLK",
-  ],
-
-  applicationName: "BookingLK",
-
-  openGraph: {
-    title: "BookingLK — Discover Sri Lanka. Stay Your Way.",
-    description:
-      "Find your perfect stay anywhere in Sri Lanka.",
-    type: "website",
-    locale: "en_LK",
-    siteName: "BookingLK",
-  },
-
-  robots: {
-    index: true,
-    follow: true,
-  },
+    "Discover and book beautiful stays across Sri Lanka.",
 };
 
 export default function RootLayout({
@@ -57,17 +29,26 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html
+      lang="en"
+      suppressHydrationWarning
+    >
       <body
-        className={`${inter.variable} ${manrope.variable} antialiased`}
+        className={`
+          ${manrope.variable}
+          ${inter.variable}
+          min-h-screen
+          bg-[var(--background)]
+          text-[var(--foreground)]
+          antialiased
+        `}
       >
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
+        <ThemeProvider>
+          <Navbar />
+
           {children}
+
+          <Footer />
         </ThemeProvider>
       </body>
     </html>

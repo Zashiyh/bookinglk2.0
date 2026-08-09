@@ -1,18 +1,19 @@
+
 "use client";
 
 import {
-  SlidersHorizontal,
-  Search,
-  MapPin,
   ChevronDown,
+  Search,
+  SlidersHorizontal,
   X,
 } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
+import { Footer } from "@/components/footer/footer";
+import { Navbar } from "@/components/navbar/navbar";
 import HotelCard, {
   HotelCardData,
 } from "@/components/hotel/HotelCard";
-
 import HotelCardSkeleton from "@/components/hotel/HotelCardSkeleton";
 
 export default function HotelsPage() {
@@ -29,6 +30,10 @@ export default function HotelsPage() {
   const [rating, setRating] = useState("");
 
   const [mobileFilters, setMobileFilters] = useState(false);
+
+  // =====================================================
+  // FETCH HOTELS
+  // =====================================================
 
   const fetchHotels = useCallback(async () => {
     try {
@@ -65,18 +70,22 @@ export default function HotelsPage() {
       );
 
       if (!response.ok) {
-        throw new Error("Failed to fetch hotels");
+        throw new Error("Failed to fetch hotels.");
       }
 
       const result = await response.json();
 
       if (!result.success) {
         throw new Error(
-          result.message || "Failed to fetch hotels"
+          result.message || "Failed to fetch hotels."
         );
       }
 
-      setHotels(Array.isArray(result.data) ? result.data : []);
+      setHotels(
+        Array.isArray(result.data)
+          ? result.data
+          : []
+      );
     } catch (err) {
       console.error("Hotel fetch error:", err);
 
@@ -90,42 +99,82 @@ export default function HotelsPage() {
     }
   }, [city, minPrice, maxPrice, rating]);
 
+  // =====================================================
+  // INITIAL / FILTER FETCH
+  // =====================================================
+
   useEffect(() => {
     fetchHotels();
   }, [fetchHotels]);
 
-  const sortedHotels = [...hotels].sort((a, b) => {
-    switch (sort) {
-      case "price-low":
-        return a.priceFrom - b.priceFrom;
+  // =====================================================
+  // SORT
+  // =====================================================
 
-      case "price-high":
-        return b.priceFrom - a.priceFrom;
+  const sortedHotels = useMemo(() => {
+    return [...hotels].sort((a, b) => {
+      switch (sort) {
+        case "price-low":
+          return (
+            (a.priceFrom ?? 0) -
+            (b.priceFrom ?? 0)
+          );
 
-      case "rating":
-        return b.rating - a.rating;
+        case "price-high":
+          return (
+            (b.priceFrom ?? 0) -
+            (a.priceFrom ?? 0)
+          );
 
-      default:
-        return b.rating - a.rating;
+        case "rating":
+          return (
+            (b.rating ?? 0) -
+            (a.rating ?? 0)
+          );
+
+        case "recommended":
+        default:
+          return (
+            (b.rating ?? 0) -
+            (a.rating ?? 0)
+          );
+      }
+    });
+  }, [hotels, sort]);
+
+  // =====================================================
+  // SEARCH
+  // =====================================================
+
+  const filteredHotels = useMemo(() => {
+    const normalizedSearch =
+      search.trim().toLowerCase();
+
+    if (!normalizedSearch) {
+      return sortedHotels;
     }
-  });
 
-  const normalizedSearch = search.trim().toLowerCase();
+    return sortedHotels.filter((hotel) => {
+      const hotelName =
+        hotel.name?.toLowerCase() ?? "";
 
-  const filteredHotels = normalizedSearch
-    ? sortedHotels.filter((hotel) => {
-        const hotelName =
-          hotel.name?.toLowerCase() ?? "";
+      const hotelCity =
+        hotel.location?.city?.toLowerCase() ?? "";
 
-        const hotelCity =
-          hotel.location?.city?.toLowerCase() ?? "";
+      const hotelDistrict =
+        hotel.location?.district?.toLowerCase() ?? "";
 
-        return (
-          hotelName.includes(normalizedSearch) ||
-          hotelCity.includes(normalizedSearch)
-        );
-      })
-    : sortedHotels;
+      return (
+        hotelName.includes(normalizedSearch) ||
+        hotelCity.includes(normalizedSearch) ||
+        hotelDistrict.includes(normalizedSearch)
+      );
+    });
+  }, [search, sortedHotels]);
+
+  // =====================================================
+  // CLEAR FILTERS
+  // =====================================================
 
   function clearFilters() {
     setCity("");
@@ -133,33 +182,53 @@ export default function HotelsPage() {
     setMinPrice("");
     setMaxPrice("");
     setRating("");
+    setSort("recommended");
   }
 
+  // =====================================================
+  // PAGE
+  // =====================================================
+
   return (
-    <main className="min-h-screen bg-[#fafafa] text-zinc-950 dark:bg-[#050505] dark:text-white">
-      {/* Header */}
-      <section className="border-b border-zinc-200 dark:border-white/10">
-        <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-            <div>
-              <div className="mb-3 flex items-center gap-2 text-sm text-zinc-500 dark:text-zinc-400">
-                <MapPin className="h-4 w-4 text-[#D4AF37]" />
+    <main className="min-h-screen bg-white text-zinc-900 transition-colors duration-300 dark:bg-[#050505] dark:text-white">
 
-                <span>Explore Sri Lanka</span>
-              </div>
+      {/* =================================================
+          NAVBAR
+      ================================================= */}
 
-              <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">
-                Find your perfect stay
-              </h1>
+      <Navbar />
 
-              <p className="mt-3 max-w-2xl text-zinc-500 dark:text-zinc-400">
-                Discover hotels, resorts, villas and unique
-                stays across Sri Lanka.
-              </p>
+      {/* =================================================
+          HEADER
+      ================================================= */}
+
+      <section className="border-b border-zinc-200/80 bg-zinc-50/80 pb-10 pt-32 dark:border-white/10 dark:bg-[#080808]">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+
+          <div className="flex flex-col items-center text-center">
+
+            {/* Small badge */}
+
+            <div className="inline-flex items-center gap-2 rounded-full border border-[#D4AF37]/20 bg-[#D4AF37]/5 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#B8860B] dark:text-[#F5D76E]">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#D4AF37]" />
+              Explore Sri Lanka
             </div>
 
+            {/* Title */}
+
+            <h1 className="mt-6 text-4xl font-semibold tracking-tight sm:text-5xl lg:text-6xl">
+              Find your perfect stay
+            </h1>
+
+            <p className="mt-4 max-w-2xl text-sm leading-7 text-zinc-500 dark:text-zinc-400 sm:text-base">
+              Discover hotels, resorts, villas and
+              unique stays across Sri Lanka.
+            </p>
+
             {/* Search */}
-            <div className="flex w-full max-w-xl items-center rounded-2xl border border-zinc-200 bg-white p-2 shadow-sm dark:border-white/10 dark:bg-[#111111]">
+
+            <div className="mt-8 flex w-full max-w-2xl items-center rounded-2xl border border-zinc-200 bg-white p-2 shadow-sm transition focus-within:border-[#D4AF37] focus-within:shadow-md dark:border-white/10 dark:bg-[#111111]">
+
               <Search className="ml-3 h-5 w-5 shrink-0 text-zinc-400" />
 
               <input
@@ -176,7 +245,7 @@ export default function HotelsPage() {
                   type="button"
                   onClick={() => setSearch("")}
                   aria-label="Clear search"
-                  className="mr-1 rounded-full p-2 hover:bg-zinc-100 dark:hover:bg-white/10"
+                  className="mr-1 rounded-full p-2 transition hover:bg-zinc-100 dark:hover:bg-white/10"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -186,28 +255,44 @@ export default function HotelsPage() {
         </div>
       </section>
 
-      {/* Main */}
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      {/* =================================================
+          MAIN CONTENT
+      ================================================= */}
+
+      <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8 lg:py-12">
+
         <div className="flex gap-8">
-          {/* Desktop Filters */}
+
+          {/* =================================================
+              DESKTOP FILTERS
+          ================================================= */}
+
           <aside className="hidden w-64 shrink-0 lg:block">
-            <Filters
-              city={city}
-              setCity={setCity}
-              minPrice={minPrice}
-              setMinPrice={setMinPrice}
-              maxPrice={maxPrice}
-              setMaxPrice={setMaxPrice}
-              rating={rating}
-              setRating={setRating}
-              clearFilters={clearFilters}
-            />
+            <div className="sticky top-28">
+              <Filters
+                city={city}
+                setCity={setCity}
+                minPrice={minPrice}
+                setMinPrice={setMinPrice}
+                maxPrice={maxPrice}
+                setMaxPrice={setMaxPrice}
+                rating={rating}
+                setRating={setRating}
+                clearFilters={clearFilters}
+              />
+            </div>
           </aside>
 
-          {/* Results */}
+          {/* =================================================
+              RESULTS
+          ================================================= */}
+
           <section className="min-w-0 flex-1">
+
             {/* Toolbar */}
-            <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+
+            <div className="mb-7 flex flex-wrap items-center justify-between gap-4">
+
               <div>
                 <p className="text-sm text-zinc-500 dark:text-zinc-400">
                   {loading
@@ -221,24 +306,30 @@ export default function HotelsPage() {
               </div>
 
               <div className="flex items-center gap-2">
-                {/* Mobile Filters */}
+
+                {/* Mobile filters */}
+
                 <button
                   type="button"
-                  onClick={() => setMobileFilters(true)}
-                  className="flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-4 py-2.5 text-sm font-medium lg:hidden dark:border-white/10 dark:bg-[#111111]"
+                  onClick={() =>
+                    setMobileFilters(true)
+                  }
+                  className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-4 py-2.5 text-sm font-medium transition hover:bg-zinc-50 lg:hidden dark:border-white/10 dark:bg-[#111111] dark:hover:bg-white/5"
                 >
                   <SlidersHorizontal className="h-4 w-4" />
                   Filters
                 </button>
 
                 {/* Sort */}
+
                 <div className="relative">
+
                   <select
                     value={sort}
                     onChange={(event) =>
                       setSort(event.target.value)
                     }
-                    className="appearance-none rounded-full border border-zinc-200 bg-white py-2.5 pl-4 pr-10 text-sm font-medium outline-none dark:border-white/10 dark:bg-[#111111]"
+                    className="appearance-none rounded-full border border-zinc-200 bg-white py-2.5 pl-4 pr-10 text-sm font-medium outline-none transition focus:border-[#D4AF37] dark:border-white/10 dark:bg-[#111111]"
                   >
                     <option value="recommended">
                       Recommended
@@ -258,14 +349,23 @@ export default function HotelsPage() {
                   </select>
 
                   <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2" />
+
                 </div>
               </div>
             </div>
 
-            {/* Error */}
+            {/* =================================================
+                ERROR
+            ================================================= */}
+
             {error && (
               <div className="rounded-3xl border border-red-500/20 bg-red-500/5 p-8 text-center">
-                <h2 className="text-lg font-semibold">
+
+                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-red-500/10">
+                  <X className="h-6 w-6 text-red-500" />
+                </div>
+
+                <h2 className="mt-5 text-lg font-semibold">
                   Something went wrong
                 </h2>
 
@@ -280,25 +380,35 @@ export default function HotelsPage() {
                 >
                   Try again
                 </button>
+
               </div>
             )}
 
-            {/* Loading */}
+            {/* =================================================
+                LOADING
+            ================================================= */}
+
             {loading && !error && (
               <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
                 {Array.from({ length: 6 }).map(
                   (_, index) => (
-                    <HotelCardSkeleton key={index} />
+                    <HotelCardSkeleton
+                      key={index}
+                    />
                   )
                 )}
               </div>
             )}
 
-            {/* Empty */}
+            {/* =================================================
+                EMPTY
+            ================================================= */}
+
             {!loading &&
               !error &&
               filteredHotels.length === 0 && (
                 <div className="rounded-3xl border border-dashed border-zinc-300 bg-white p-12 text-center dark:border-white/10 dark:bg-[#111111]">
+
                   <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#D4AF37]/10">
                     <Search className="h-6 w-6 text-[#D4AF37]" />
                   </div>
@@ -307,9 +417,9 @@ export default function HotelsPage() {
                     No stays found
                   </h2>
 
-                  <p className="mx-auto mt-2 max-w-md text-sm text-zinc-500 dark:text-zinc-400">
-                    Try changing your destination, price
-                    range or filters.
+                  <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-zinc-500 dark:text-zinc-400">
+                    Try changing your destination,
+                    price range or filters.
                   </p>
 
                   <button
@@ -319,50 +429,80 @@ export default function HotelsPage() {
                   >
                     Clear filters
                   </button>
+
                 </div>
               )}
 
-            {/* Hotels */}
+            {/* =================================================
+                HOTEL GRID
+            ================================================= */}
+
             {!loading &&
               !error &&
               filteredHotels.length > 0 && (
                 <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
-                  {filteredHotels.map((hotel) => (
-                    <HotelCard
-                      key={hotel._id}
-                      hotel={hotel}
-                    />
-                  ))}
+
+                  {filteredHotels.map(
+                    (hotel) => (
+                      <HotelCard
+                        key={hotel._id}
+                        hotel={hotel}
+                      />
+                    )
+                  )}
+
                 </div>
               )}
+
           </section>
         </div>
-      </div>
+      </section>
 
-      {/* Mobile Filters */}
+      {/* =================================================
+          MOBILE FILTER DRAWER
+      ================================================= */}
+
       {mobileFilters && (
         <div className="fixed inset-0 z-50 lg:hidden">
+
+          {/* Overlay */}
+
           <button
             type="button"
             aria-label="Close filters"
-            onClick={() => setMobileFilters(false)}
+            onClick={() =>
+              setMobileFilters(false)
+            }
             className="absolute inset-0 bg-black/60 backdrop-blur-sm"
           />
 
-          <div className="absolute bottom-0 left-0 right-0 max-h-[85vh] overflow-y-auto rounded-t-3xl bg-white p-6 dark:bg-[#111111]">
-            <div className="mb-6 flex items-center justify-between">
-              <h2 className="text-xl font-semibold">
-                Filters
-              </h2>
+          {/* Drawer */}
+
+          <div className="absolute bottom-0 left-0 right-0 max-h-[88vh] overflow-y-auto rounded-t-[2rem] border-t border-zinc-200 bg-white p-6 dark:border-white/10 dark:bg-[#111111]">
+
+            <div className="mb-7 flex items-center justify-between">
+
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-[#B8860B] dark:text-[#F5D76E]">
+                  Refine results
+                </p>
+
+                <h2 className="mt-1 text-xl font-semibold">
+                  Filters
+                </h2>
+              </div>
 
               <button
                 type="button"
-                onClick={() => setMobileFilters(false)}
+                onClick={() =>
+                  setMobileFilters(false)
+                }
                 aria-label="Close filters"
-                className="rounded-full p-2 hover:bg-zinc-100 dark:hover:bg-white/10"
+                className="rounded-full p-2 transition hover:bg-zinc-100 dark:hover:bg-white/10"
               >
                 <X className="h-5 w-5" />
               </button>
+
             </div>
 
             <Filters
@@ -379,17 +519,31 @@ export default function HotelsPage() {
 
             <button
               type="button"
-              onClick={() => setMobileFilters(false)}
-              className="mt-6 w-full rounded-2xl bg-[#D4AF37] py-3.5 font-semibold text-black transition hover:bg-[#F5D76E]"
+              onClick={() =>
+                setMobileFilters(false)
+              }
+              className="mt-7 w-full rounded-2xl bg-[#D4AF37] py-3.5 font-semibold text-black transition hover:bg-[#F5D76E]"
             >
               Show results
             </button>
+
           </div>
         </div>
       )}
+
+      {/* =================================================
+          FOOTER
+      ================================================= */}
+
+      <Footer />
+
     </main>
   );
 }
+
+// =====================================================
+// FILTER TYPES
+// =====================================================
 
 interface FiltersProps {
   city: string;
@@ -407,6 +561,10 @@ interface FiltersProps {
   clearFilters: () => void;
 }
 
+// =====================================================
+// FILTER COMPONENT
+// =====================================================
+
 function Filters({
   city,
   setCity,
@@ -420,21 +578,35 @@ function Filters({
 }: FiltersProps) {
   return (
     <div className="space-y-7">
-      {/* Filter Header */}
+
+      {/* Header */}
+
       <div className="flex items-center justify-between">
-        <h2 className="font-semibold">Filters</h2>
+
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wider text-[#B8860B] dark:text-[#F5D76E]">
+            Refine
+          </p>
+
+          <h2 className="mt-1 text-lg font-semibold">
+            Filters
+          </h2>
+        </div>
 
         <button
           type="button"
           onClick={clearFilters}
-          className="text-xs font-medium text-[#B8860B] dark:text-[#F5D76E]"
+          className="text-xs font-medium text-[#B8860B] transition hover:text-[#8B6914] dark:text-[#F5D76E]"
         >
           Clear all
         </button>
+
       </div>
 
       {/* Destination */}
+
       <div>
+
         <label
           htmlFor="destination"
           className="text-sm font-medium"
@@ -449,17 +621,21 @@ function Filters({
             setCity(event.target.value)
           }
           placeholder="e.g. Kandy"
-          className="mt-2 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-[#D4AF37] dark:border-white/10 dark:bg-[#111111]"
+          className="mt-2 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm outline-none transition placeholder:text-zinc-400 focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/10 dark:border-white/10 dark:bg-[#111111]"
         />
+
       </div>
 
       {/* Price */}
+
       <div>
+
         <label className="text-sm font-medium">
           Price per night
         </label>
 
         <div className="mt-2 grid grid-cols-2 gap-2">
+
           <input
             type="number"
             min="0"
@@ -468,7 +644,7 @@ function Filters({
               setMinPrice(event.target.value)
             }
             placeholder="Min"
-            className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-[#D4AF37] dark:border-white/10 dark:bg-[#111111]"
+            className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm outline-none transition placeholder:text-zinc-400 focus:border-[#D4AF37] dark:border-white/10 dark:bg-[#111111]"
           />
 
           <input
@@ -479,43 +655,56 @@ function Filters({
               setMaxPrice(event.target.value)
             }
             placeholder="Max"
-            className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-[#D4AF37] dark:border-white/10 dark:bg-[#111111]"
+            className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm outline-none transition placeholder:text-zinc-400 focus:border-[#D4AF37] dark:border-white/10 dark:bg-[#111111]"
           />
+
         </div>
       </div>
 
       {/* Rating */}
+
       <div>
+
         <label className="text-sm font-medium">
           Rating
         </label>
 
-        <div className="mt-3 space-y-2">
+        <div className="mt-3 space-y-3">
+
           {[
             ["5", "5.0+ only"],
             ["4", "4.0+ only"],
             ["3", "3.0+ only"],
-          ].map(([value, label]) => (
-            <label
-              key={value}
-              className="flex cursor-pointer items-center gap-3 text-sm"
-            >
-              <input
-                type="radio"
-                name="rating"
-                value={value}
-                checked={rating === value}
-                onChange={(event) =>
-                  setRating(event.target.value)
-                }
-                className="accent-[#D4AF37]"
-              />
+          ].map(
+            ([value, label]) => (
+              <label
+                key={value}
+                className="flex cursor-pointer items-center gap-3 text-sm text-zinc-700 dark:text-zinc-300"
+              >
 
-              {label}
-            </label>
-          ))}
+                <input
+                  type="radio"
+                  name="rating"
+                  value={value}
+                  checked={rating === value}
+                  onChange={(event) =>
+                    setRating(
+                      event.target.value
+                    )
+                  }
+                  className="h-4 w-4 accent-[#D4AF37]"
+                />
+
+                {label}
+
+              </label>
+            )
+          )}
+
         </div>
       </div>
+
     </div>
   );
 }
+
