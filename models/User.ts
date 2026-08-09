@@ -1,40 +1,33 @@
-import mongoose, {
-  Document,
-  Model,
-  Schema,
-} from "mongoose";
+import mongoose, { Schema, Document, Model } from "mongoose";
 
-export type UserRole =
-  | "USER"
-  | "HOTEL_OWNER"
-  | "HOTEL_MANAGER"
-  | "ADMIN"
-  | "SUPER_ADMIN";
+export type UserRole = "USER" | "ADMIN";
 
 export interface IUser extends Document {
-  name: string;
+  firstName: string;
+  lastName: string;
   email: string;
   password: string;
-
+  phone?: string;
   role: UserRole;
-
-  avatar?: string;
-
   isActive: boolean;
-  isEmailVerified: boolean;
-
   createdAt: Date;
   updatedAt: Date;
 }
 
 const UserSchema = new Schema<IUser>(
   {
-    name: {
+    firstName: {
       type: String,
       required: true,
       trim: true,
-      minlength: 2,
-      maxlength: 100,
+      maxlength: 50,
+    },
+
+    lastName: {
+      type: String,
+      required: true,
+      trim: true,
+      maxlength: 50,
     },
 
     email: {
@@ -52,36 +45,23 @@ const UserSchema = new Schema<IUser>(
       select: false,
     },
 
-    role: {
+    phone: {
       type: String,
-      enum: [
-        "USER",
-        "HOTEL_OWNER",
-        "HOTEL_MANAGER",
-        "ADMIN",
-        "SUPER_ADMIN",
-      ],
-      default: "USER",
-      index: true,
+      trim: true,
+      default: "",
     },
 
-    avatar: {
+    role: {
       type: String,
-      default: null,
+      enum: ["USER", "ADMIN"],
+      default: "USER",
     },
 
     isActive: {
       type: Boolean,
       default: true,
-      index: true,
-    },
-
-    isEmailVerified: {
-      type: Boolean,
-      default: false,
     },
   },
-
   {
     timestamps: true,
   }

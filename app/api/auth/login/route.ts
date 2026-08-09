@@ -1,0 +1,108 @@
+import { NextRequest, NextResponse } from "next/server";
+import bcrypt from "bcryptjs";
+
+import connectDB from "@/lib/db/mongoose";
+import { User } from "@/models/User";
+import { createToken } from "@/lib/auth/jwt";
+
+export async function POST(req: NextRequest) {
+  try {
+    await connectDB();
+
+    const body = await req.json();
+
+    const email = String(body.email || "")
+      .trim()
+      .toLowerCase();
+
+    const password = String(body.password || "");
+
+    if (!email || !password) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Email and password are required.",
+        },
+        { status: 400 }
+      );
+    }
+
+    const user = await User.findOne({ email }).select("+password");
+
+    if (!user) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Invalid email or password.",
+        },
+        { status: 401 }
+      );
+    }
+
+    if (!user.isActive) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Your account has been disabled.",
+        },
+        { status: 403 }
+      );
+    }
+
+    const passwordMatch = await bcrypt.compare(
+      password,
+      user.password
+    );
+
+    if (!passwordMatch) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Invalid email or password.",
+        },
+        { status: 401 }
+      );
+    }
+
+    const token = createToken({
+      userId: user._id.toString(),
+      email: user.email,
+      role: user.role,
+    });
+
+    const response = NextResponse.json({
+      success: true,
+      message: "Login successful.",
+      data: {
+        id: user._id.toString(),
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        phone: user.phone ?? "",
+        role: user.role,
+      },
+    });
+
+    response.cookies.set({
+      name: "bookinglk_token",
+      value: token,
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 7,
+    });
+
+    return response;
+  } catch (error) {
+    console.error("LOGIN_ERROR:", error);
+
+    return NextResponse.json(
+      {
+        success: false,
+        message: "Something went wrong while logging in.",
+      },
+      { status: 500 }
+    );
+  }
+}
