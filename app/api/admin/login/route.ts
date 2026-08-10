@@ -5,17 +5,23 @@ import connectDB from "@/lib/db/mongoose";
 import { User } from "@/models/User";
 import { createToken } from "@/lib/auth/jwt";
 
-export async function POST(req: NextRequest) {
+export async function POST(
+  req: NextRequest
+) {
   try {
     await connectDB();
 
     const body = await req.json();
 
-    const email = String(body.email || "")
+    const email = String(
+      body.email || ""
+    )
       .trim()
       .toLowerCase();
 
-    const password = String(body.password || "");
+    const password = String(
+      body.password || ""
+    );
 
     if (!email || !password) {
       return NextResponse.json(
@@ -28,16 +34,17 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const user = await User.findOne({
-      email,
-    }).select("+password");
+    const user =
+      await User.findOne({
+        email,
+      }).select("+password");
 
     if (!user) {
       return NextResponse.json(
         {
           success: false,
           message:
-            "Invalid admin credentials.",
+            "Invalid administrator credentials.",
         },
         { status: 401 }
       );
@@ -51,7 +58,7 @@ export async function POST(req: NextRequest) {
         {
           success: false,
           message:
-            "You do not have admin access.",
+            "Administrator access required.",
         },
         { status: 403 }
       );
@@ -62,44 +69,48 @@ export async function POST(req: NextRequest) {
         {
           success: false,
           message:
-            "This admin account is disabled.",
+            "Administrator account is disabled.",
         },
         { status: 403 }
       );
     }
 
-    const passwordValid =
+    const passwordMatch =
       await bcrypt.compare(
         password,
         user.password
       );
 
-    if (!passwordValid) {
+    if (!passwordMatch) {
       return NextResponse.json(
         {
           success: false,
           message:
-            "Invalid admin credentials.",
+            "Invalid administrator credentials.",
         },
         { status: 401 }
       );
     }
 
-    const token = createToken({
-      userId: user._id.toString(),
-      email: user.email,
-      role: user.role,
-    });
+    const token =
+      createToken({
+        userId:
+          user._id.toString(),
+        email: user.email,
+        role: user.role,
+      });
 
     const response =
       NextResponse.json({
         success: true,
         message:
-          "Admin login successful.",
+          "Administrator login successful.",
         data: {
           id: user._id.toString(),
-          firstName: user.firstName,
-          lastName: user.lastName,
+          firstName:
+            user.firstName,
+          lastName:
+            user.lastName,
           email: user.email,
           role: user.role,
         },

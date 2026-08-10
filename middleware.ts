@@ -1,115 +1,153 @@
-import { NextRequest, NextResponse } from "next/server";
-import { verifyToken } from "@/lib/auth/jwt";
+import {
+  NextRequest,
+  NextResponse,
+} from "next/server";
 
-export function middleware(request: NextRequest) {
+import { verifyTokenEdge } from "@/lib/auth/jwt-edge";
+
+export async function middleware(
+  request: NextRequest
+) {
   const { pathname } = request.nextUrl;
 
-  // Public routes
-  const publicRoutes = [
-    "/",
-    "/login",
-    "/register",
-    "/hotels",
-    "/destinations",
-    "/explore",
-    "/deals",
-  ];
+  console.log("ADMIN MIDDLEWARE");
+  console.log("PATH:", pathname);
 
-  const isPublicRoute = publicRoutes.some(
-    (route) =>
-      pathname === route ||
-      pathname.startsWith(`${route}/`)
-  );
+  // ============================================
+  // ADMIN LOGIN
+  // ============================================
 
-  // Allow public routes
-  if (isPublicRoute) {
+  if (pathname === "/admin/login") {
     return NextResponse.next();
   }
 
-  // Get JWT from cookie
-  const token = request.cookies.get("token")?.value;
+  // ============================================
+  // ADMIN ROUTES
+  // ============================================
 
-  /*
-   * Protected routes
-   */
-  const isDashboardRoute =
-    pathname.startsWith("/dashboard");
+  if (
+    pathname === "/admin" ||
+    pathname.startsWith("/admin/")
+  ) {
+    const token =
+      request.cookies.get(
+        "bookinglk_token"
+      )?.value;
 
-  const isAdminRoute =
-    pathname.startsWith("/admin");
+    console.log(
+      "ADMIN MIDDLEWARE TOKEN:",
+      token ? "FOUND" : "NOT FOUND"
+    );
 
-  // Dashboard requires login
-  if (isDashboardRoute) {
+    // No token
     if (!token) {
-      const loginUrl = new URL(
-        "/login",
-        request.url
+      console.log(
+        "ADMIN REDIRECT: NO TOKEN"
       );
 
-      loginUrl.searchParams.set(
-        "redirect",
-        pathname
+      return NextResponse.redirect(
+        new URL(
+          "/admin/login",
+          request.url
+        )
       );
-
-      return NextResponse.redirect(loginUrl);
     }
 
-    const user = verifyToken(token);
+    // Edge-compatible JWT verification
+    const user =
+      await verifyTokenEdge(token);
 
+    console.log(
+      "ADMIN MIDDLEWARE USER:",
+      user
+    );
+
+    // Invalid token
     if (!user) {
-      const response = NextResponse.redirect(
-        new URL("/login", request.url)
+      console.log(
+        "ADMIN REDIRECT: INVALID TOKEN"
       );
 
-      response.cookies.delete("token");
+      const response =
+        NextResponse.redirect(
+          new URL(
+            "/admin/login",
+            request.url
+          )
+        );
+
+      response.cookies.delete(
+        "bookinglk_token"
+      );
 
       return response;
     }
 
-    return NextResponse.next();
-  }
-
-  /*
-   * Admin routes
-   */
-  if (isAdminRoute) {
-    if (!token) {
-      const loginUrl = new URL(
-        "/login",
-        request.url
-      );
-
-      loginUrl.searchParams.set(
-        "redirect",
-        pathname
-      );
-
-      return NextResponse.redirect(loginUrl);
-    }
-
-    const user = verifyToken(token);
-
-    if (!user) {
-      const response = NextResponse.redirect(
-        new URL("/login", request.url)
-      );
-
-      response.cookies.delete("token");
-
-      return response;
-    }
-
-    /*
-     * Only ADMIN and SUPER_ADMIN
-     * can access /admin
-     */
+    // Admin permission
     if (
       user.role !== "ADMIN" &&
       user.role !== "SUPER_ADMIN"
     ) {
-      return NextResponse.redirect(
-        new URL("/", request.url)
+      console.log(
+        "ADMIN REDIRECT: NOT ADMIN",
+        user.role
       );
+
+      return NextResponse.redirect(
+        new URL(
+          "/",
+          request.url
+        )
+      );
+    }
+
+    console.log(
+      "ADMIN ACCESS GRANTED:",
+      user.email
+    );
+
+    return NextResponse.next();
+  }
+
+  // ============================================
+  // NORMAL USER DASHBOARD
+  // ============================================
+
+  if (
+    pathname === "/dashboard" ||
+    pathname.startsWith("/dashboard/")
+  ) {
+    const token =
+      request.cookies.get(
+        "bookinglk_token"
+      )?.value;
+
+    if (!token) {
+      return NextResponse.redirect(
+        new URL(
+          "/login",
+          request.url
+        )
+      );
+    }
+
+    const user =
+      await verifyTokenEdge(token);
+
+    if (!user) {
+      const response =
+        NextResponse.redirect(
+          new URL(
+            "/login",
+            request.url
+          )
+        );
+
+      response.cookies.delete(
+        "bookinglk_token"
+      );
+
+      return response;
     }
 
     return NextResponse.next();
@@ -120,7 +158,7 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/dashboard/:path*",
     "/admin/:path*",
+    "/dashboard/:path*",
   ],
 };

@@ -7,7 +7,7 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-zinc-50 text-zinc-950 dark:bg-[#050505] dark:text-white">
+    <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)]">
       <AdminSidebar />
 
       <div className="lg:pl-64">

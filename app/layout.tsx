@@ -4,8 +4,6 @@ import { Manrope, Inter } from "next/font/google";
 import "./globals.css";
 
 import { ThemeProvider } from "@/components/providers/theme-provider";
-import { Navbar } from "@/components/navbar/navbar";
-import { Footer } from "@/components/footer/footer";
 
 const manrope = Manrope({
   variable: "--font-manrope",
@@ -44,11 +42,7 @@ export default function RootLayout({
         `}
       >
         <ThemeProvider>
-          <Navbar />
-
           {children}
-
-          <Footer />
         </ThemeProvider>
       </body>
     </html>

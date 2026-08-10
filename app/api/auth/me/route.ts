@@ -1,3 +1,4 @@
+
 import { NextRequest, NextResponse } from "next/server";
 
 import connectDB from "@/lib/db/mongoose";
@@ -6,7 +7,8 @@ import { verifyToken } from "@/lib/auth/jwt";
 
 export async function GET(req: NextRequest) {
   try {
-    const token = req.cookies.get("bookinglk_token")?.value;
+    const token =
+      req.cookies.get("bookinglk_token")?.value;
 
     if (!token) {
       return NextResponse.json(
@@ -32,9 +34,9 @@ export async function GET(req: NextRequest) {
 
     await connectDB();
 
-    const user = await User.findById(payload.userId).select(
-      "-password"
-    );
+    const user = await User.findById(
+      payload.userId
+    ).select("-password");
 
     if (!user) {
       return NextResponse.json(
@@ -56,19 +58,47 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    return NextResponse.json({
-      success: true,
-      data: {
-        id: user._id.toString(),
-        firstName: user.firstName,
-        lastName: user.lastName,
-        email: user.email,
-        phone: user.phone ?? "",
-        role: user.role,
+    return NextResponse.json(
+      {
+        success: true,
+        data: {
+          id: user._id.toString(),
+
+          firstName:
+            typeof user.firstName === "string"
+              ? user.firstName
+              : "",
+
+          lastName:
+            typeof user.lastName === "string"
+              ? user.lastName
+              : "",
+
+          email:
+            typeof user.email === "string"
+              ? user.email
+              : "",
+
+          phone:
+            typeof user.phone === "string"
+              ? user.phone
+              : "",
+
+          role: user.role,
+
+          avatar:
+            typeof user.avatar === "string"
+              ? user.avatar
+              : null,
+        },
       },
-    });
+      { status: 200 }
+    );
   } catch (error) {
-    console.error("ME_ERROR:", error);
+    console.error(
+      "AUTH_ME_ERROR:",
+      error
+    );
 
     return NextResponse.json(
       {
@@ -79,3 +109,4 @@ export async function GET(req: NextRequest) {
     );
   }
 }
+
