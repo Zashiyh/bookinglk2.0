@@ -1,9 +1,13 @@
-import mongoose, { Document, Model, Schema } from "mongoose";
+
+import mongoose, {
+  Document,
+  Model,
+  Schema,
+} from "mongoose";
 
 export interface IHotel extends Document {
   name: string;
   slug: string;
-
   description: string;
 
   propertyType:
@@ -36,7 +40,6 @@ export interface IHotel extends Document {
   currency: "LKR";
 
   amenities: string[];
-
   images: string[];
 
   isVerified: boolean;
@@ -116,8 +119,8 @@ const HotelSchema = new Schema<IHotel>(
 
       country: {
         type: String,
-        default: "Sri Lanka",
         required: true,
+        default: "Sri Lanka",
       },
     },
 
@@ -125,8 +128,8 @@ const HotelSchema = new Schema<IHotel>(
       type: {
         type: String,
         enum: ["Point"],
-        default: "Point",
         required: true,
+        default: "Point",
       },
 
       coordinates: {
@@ -136,6 +139,7 @@ const HotelSchema = new Schema<IHotel>(
         validate: {
           validator: (value: number[]) => {
             return (
+              Array.isArray(value) &&
               value.length === 2 &&
               value[0] >= -180 &&
               value[0] <= 180 &&
@@ -206,7 +210,6 @@ const HotelSchema = new Schema<IHotel>(
       index: true,
     },
   },
-
   {
     timestamps: true,
   }
@@ -215,18 +218,17 @@ const HotelSchema = new Schema<IHotel>(
 /*
  * Geospatial index
  *
- * Used later for:
- *
- * "Hotels near me"
- * "Hotels within 5km"
- * "Hotels near Kandy"
+ * Used for:
+ * - Hotels near me
+ * - Hotels within a specific radius
+ * - Location-based hotel search
  */
 HotelSchema.index({
   coordinates: "2dsphere",
 });
 
 /*
- * Common search index
+ * Common hotel search index
  */
 HotelSchema.index({
   "location.city": 1,
@@ -235,6 +237,13 @@ HotelSchema.index({
   rating: -1,
 });
 
+/*
+ * Prevent model recompilation during
+ * Next.js development hot reloads.
+ */
 export const Hotel: Model<IHotel> =
   mongoose.models.Hotel ||
   mongoose.model<IHotel>("Hotel", HotelSchema);
+
+export default Hotel;
+
