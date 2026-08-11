@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { Footer } from "@/components/footer/footer";
+
 import { Navbar } from "@/components/navbar/navbar";
 import HotelCard, {
   HotelCardData,
@@ -531,11 +531,7 @@ export default function HotelsPage() {
         </div>
       )}
 
-      {/* =================================================
-          FOOTER
-      ================================================= */}
-
-      <Footer />
+    
 
     </main>
   );

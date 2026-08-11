@@ -1,7 +1,10 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import {
+  FormEvent,
+  useState,
+} from "react";
+import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
   Building2,
@@ -12,6 +15,7 @@ import {
   Plus,
   Save,
   X,
+  ExternalLink,
 } from "lucide-react";
 
 type PropertyType =
@@ -52,17 +56,38 @@ const propertyTypes: {
   value: PropertyType;
   label: string;
 }[] = [
-  { value: "HOTEL", label: "Hotel" },
-  { value: "RESORT", label: "Resort" },
-  { value: "VILLA", label: "Villa" },
-  { value: "APARTMENT", label: "Apartment" },
-  { value: "GUEST_HOUSE", label: "Guest House" },
+  {
+    value: "HOTEL",
+    label: "Hotel",
+  },
+  {
+    value: "RESORT",
+    label: "Resort",
+  },
+  {
+    value: "VILLA",
+    label: "Villa",
+  },
+  {
+    value: "APARTMENT",
+    label: "Apartment",
+  },
+  {
+    value: "GUEST_HOUSE",
+    label: "Guest House",
+  },
   {
     value: "BOUTIQUE_HOTEL",
     label: "Boutique Hotel",
   },
-  { value: "HOSTEL", label: "Hostel" },
-  { value: "HOMESTAY", label: "Homestay" },
+  {
+    value: "HOSTEL",
+    label: "Hostel",
+  },
+  {
+    value: "HOMESTAY",
+    label: "Homestay",
+  },
 ];
 
 function createSlug(value: string) {
@@ -100,48 +125,72 @@ function getSafePropertyType(
   return "HOTEL";
 }
 
-export default function AdminEditHotelPage() {
+function isGoogleDriveUrl(url: string) {
+  return (
+    url.includes("drive.google.com") ||
+    url.includes("docs.google.com")
+  );
+}
+
+function getGoogleDrivePreviewUrl(url: string) {
+  try {
+    const parsed = new URL(url);
+
+    const match =
+      parsed.pathname.match(
+        /\/d\/([^/]+)/
+      );
+
+    if (match?.[1]) {
+      return `https://drive.google.com/uc?export=view&id=${match[1]}`;
+    }
+
+    const id =
+      parsed.searchParams.get("id");
+
+    if (id) {
+      return `https://drive.google.com/uc?export=view&id=${id}`;
+    }
+
+    return url;
+  } catch {
+    return url;
+  }
+}
+
+export default function AdminNewHotelPage() {
   const router = useRouter();
 
-  const params = useParams();
+  const [form, setForm] =
+    useState<HotelForm>({
+      name: "",
+      slug: "",
+      description: "",
+      propertyType: "HOTEL",
 
-  const id =
-    typeof params?.id === "string"
-      ? params.id
-      : "";
+      address: "",
+      city: "",
+      district: "",
+      province: "",
+      country: "Sri Lanka",
 
-  const [form, setForm] = useState<HotelForm>({
-    name: "",
-    slug: "",
-    description: "",
-    propertyType: "HOTEL",
+      longitude: "",
+      latitude: "",
 
-    address: "",
-    city: "",
-    district: "",
-    province: "",
-    country: "Sri Lanka",
+      priceFrom: "",
 
-    longitude: "",
-    latitude: "",
+      amenities: [],
+      images: [],
 
-    priceFrom: "",
-
-    amenities: [],
-    images: [],
-
-    isVerified: false,
-    isPublished: false,
-  });
+      isVerified: false,
+      isPublished: false,
+    });
 
   const [amenityInput, setAmenityInput] =
     useState("");
 
   const [imageInput, setImageInput] =
     useState("");
-
-  const [loading, setLoading] =
-    useState(true);
 
   const [saving, setSaving] =
     useState(false);
@@ -151,195 +200,6 @@ export default function AdminEditHotelPage() {
 
   const [success, setSuccess] =
     useState("");
-
-  useEffect(() => {
-    if (!id) {
-      setError("Invalid hotel ID.");
-      setLoading(false);
-      return;
-    }
-
-    loadHotel();
-  }, [id]);
-
-  async function loadHotel() {
-    try {
-      setLoading(true);
-      setError("");
-
-      const response = await fetch(
-        `/api/admin/hotels/${id}`,
-        {
-          method: "GET",
-          credentials: "include",
-          cache: "no-store",
-        }
-      );
-
-      const contentType =
-        response.headers.get(
-          "content-type"
-        ) || "";
-
-      if (
-        !contentType.includes(
-          "application/json"
-        )
-      ) {
-        const text =
-          await response.text();
-
-        console.error(
-          "HOTEL_GET_NON_JSON:",
-          text
-        );
-
-        throw new Error(
-          `Server returned ${response.status} instead of JSON.`
-        );
-      }
-
-      const result =
-        await response.json();
-
-      if (
-        !response.ok ||
-        !result.success
-      ) {
-        throw new Error(
-          result.message ||
-            "Unable to load hotel."
-        );
-      }
-
-      const hotel = result.data;
-
-      if (!hotel) {
-        throw new Error(
-          "Hotel data was not returned."
-        );
-      }
-
-      const coordinates =
-        hotel.coordinates
-          ?.coordinates;
-
-      const longitude =
-        Array.isArray(coordinates) &&
-        coordinates.length >= 2
-          ? String(coordinates[0])
-          : "";
-
-      const latitude =
-        Array.isArray(coordinates) &&
-        coordinates.length >= 2
-          ? String(coordinates[1])
-          : "";
-
-      setForm({
-        name:
-          typeof hotel.name ===
-          "string"
-            ? hotel.name
-            : "",
-
-        slug:
-          typeof hotel.slug ===
-          "string"
-            ? hotel.slug
-            : "",
-
-        description:
-          typeof hotel.description ===
-          "string"
-            ? hotel.description
-            : "",
-
-        propertyType:
-          getSafePropertyType(
-            hotel.propertyType
-          ),
-
-        address:
-          hotel.location?.address ||
-          "",
-
-        city:
-          hotel.location?.city ||
-          "",
-
-        district:
-          hotel.location?.district ||
-          "",
-
-        province:
-          hotel.location?.province ||
-          "",
-
-        country:
-          hotel.location?.country ||
-          "Sri Lanka",
-
-        longitude,
-
-        latitude,
-
-        priceFrom:
-          hotel.priceFrom !==
-            undefined &&
-          hotel.priceFrom !== null
-            ? String(
-                hotel.priceFrom
-              )
-            : "",
-
-        amenities:
-          Array.isArray(
-            hotel.amenities
-          )
-            ? hotel.amenities.filter(
-                (item: unknown) =>
-                  typeof item ===
-                  "string"
-              )
-            : [],
-
-        images:
-          Array.isArray(
-            hotel.images
-          )
-            ? hotel.images.filter(
-                (item: unknown) =>
-                  typeof item ===
-                  "string"
-              )
-            : [],
-
-        isVerified:
-          Boolean(
-            hotel.isVerified
-          ),
-
-        isPublished:
-          Boolean(
-            hotel.isPublished
-          ),
-      });
-    } catch (error) {
-      console.error(
-        "LOAD_HOTEL_ERROR:",
-        error
-      );
-
-      setError(
-        error instanceof Error
-          ? error.message
-          : "Unable to load hotel."
-      );
-    } finally {
-      setLoading(false);
-    }
-  }
 
   function updateField<
     K extends keyof HotelForm
@@ -459,11 +319,6 @@ export default function AdminEditHotelPage() {
     setError("");
     setSuccess("");
 
-    if (!id) {
-      setError("Invalid hotel ID.");
-      return;
-    }
-
     if (!form.name.trim()) {
       setError(
         "Hotel name is required."
@@ -493,7 +348,9 @@ export default function AdminEditHotelPage() {
     }
 
     if (!form.city.trim()) {
-      setError("City is required.");
+      setError(
+        "City is required."
+      );
       return;
     }
 
@@ -532,6 +389,7 @@ export default function AdminEditHotelPage() {
       Number(form.latitude);
 
     if (
+      form.longitude === "" ||
       !Number.isFinite(longitude) ||
       longitude < -180 ||
       longitude > 180
@@ -543,6 +401,7 @@ export default function AdminEditHotelPage() {
     }
 
     if (
+      form.latitude === "" ||
       !Number.isFinite(latitude) ||
       latitude < -90 ||
       latitude > 90
@@ -556,10 +415,21 @@ export default function AdminEditHotelPage() {
     try {
       setSaving(true);
 
+      /*
+       * IMPORTANT
+       *
+       * NEW HOTEL = POST
+       *
+       * Do NOT use:
+       * /api/admin/hotels/${id}
+       *
+       * because a new hotel does not have an ID yet.
+       */
+
       const response = await fetch(
-        `/api/admin/hotels/${id}`,
+        "/api/admin/hotels",
         {
-          method: "PATCH",
+          method: "POST",
 
           headers: {
             "Content-Type":
@@ -573,9 +443,9 @@ export default function AdminEditHotelPage() {
               form.name.trim(),
 
             slug:
-              form.slug
-                .trim()
-                .toLowerCase(),
+              createSlug(
+                form.slug.trim()
+              ),
 
             description:
               form.description.trim(),
@@ -601,6 +471,12 @@ export default function AdminEditHotelPage() {
                 "Sri Lanka",
             },
 
+            /*
+             * GeoJSON uses:
+             *
+             * [longitude, latitude]
+             */
+
             coordinates: {
               type: "Point",
 
@@ -609,6 +485,10 @@ export default function AdminEditHotelPage() {
                 latitude,
               ],
             },
+
+            rating: 0,
+
+            reviewCount: 0,
 
             priceFrom: price,
 
@@ -643,7 +523,7 @@ export default function AdminEditHotelPage() {
           await response.text();
 
         console.error(
-          "HOTEL_UPDATE_NON_JSON:",
+          "CREATE_HOTEL_NON_JSON:",
           text
         );
 
@@ -661,13 +541,18 @@ export default function AdminEditHotelPage() {
       ) {
         throw new Error(
           result.message ||
-            `Unable to update hotel (${response.status}).`
+            `Unable to create hotel (${response.status}).`
         );
       }
 
       setSuccess(
-        "Hotel updated successfully."
+        "Hotel created successfully."
       );
+
+      /*
+       * Give the user a moment to see
+       * the success message.
+       */
 
       setTimeout(() => {
         router.push(
@@ -678,40 +563,29 @@ export default function AdminEditHotelPage() {
       }, 700);
     } catch (error) {
       console.error(
-        "UPDATE_HOTEL_ERROR:",
+        "CREATE_HOTEL_ERROR:",
         error
       );
 
       setError(
         error instanceof Error
           ? error.message
-          : "Unable to update hotel."
+          : "Unable to create hotel."
       );
     } finally {
       setSaving(false);
     }
   }
 
-  if (loading) {
-    return (
-      <div className="flex min-h-[500px] items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
-          <Loader2 className="h-8 w-8 animate-spin text-[#D4AF37]" />
-
-          <p className="text-sm text-zinc-500">
-            Loading hotel...
-          </p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-full pb-12">
+
       {/* HEADER */}
 
       <div className="mb-8 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+
         <div>
+
           <button
             type="button"
             onClick={() =>
@@ -722,35 +596,45 @@ export default function AdminEditHotelPage() {
             className="mb-5 inline-flex items-center gap-2 text-sm font-medium text-zinc-500 transition hover:text-[#D4AF37]"
           >
             <ArrowLeft className="h-4 w-4" />
+
             Back to hotels
           </button>
 
           <div className="flex items-center gap-3">
+
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-[#D4AF37]/20 bg-[#D4AF37]/10">
+
               <Building2 className="h-6 w-6 text-[#D4AF37]" />
+
             </div>
 
             <div>
+
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#D4AF37]">
                 Hotel management
               </p>
 
               <h1 className="mt-1 text-3xl font-bold tracking-tight sm:text-4xl">
-                Edit hotel
+                Add hotel
               </h1>
+
             </div>
+
           </div>
 
           <p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-500">
-            Update this property's
+            Add a new property to
+            BookingLK with complete
             information, location,
             amenities and publishing
             settings.
           </p>
+
         </div>
 
         <button
           type="button"
+          disabled={saving}
           onClick={() =>
             router.push(
               "/admin/hotels"
@@ -760,23 +644,32 @@ export default function AdminEditHotelPage() {
         >
           Cancel
         </button>
+
       </div>
 
       {/* ALERTS */}
 
       {error && (
         <div className="mb-6 flex items-start gap-3 rounded-2xl border border-red-500/20 bg-red-500/5 px-4 py-3 text-sm text-red-400">
+
           <X className="mt-0.5 h-4 w-4 shrink-0" />
 
-          <span>{error}</span>
+          <span>
+            {error}
+          </span>
+
         </div>
       )}
 
       {success && (
         <div className="mb-6 flex items-center gap-3 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-3 text-sm text-emerald-400">
+
           <Check className="h-4 w-4" />
 
-          <span>{success}</span>
+          <span>
+            {success}
+          </span>
+
         </div>
       )}
 
@@ -784,10 +677,13 @@ export default function AdminEditHotelPage() {
         onSubmit={handleSubmit}
         className="space-y-6"
       >
+
         {/* BASIC INFORMATION */}
 
         <section className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-white/[0.025] sm:p-7">
+
           <div className="mb-7">
+
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#D4AF37]">
               01
             </p>
@@ -797,12 +693,13 @@ export default function AdminEditHotelPage() {
             </h2>
 
             <p className="mt-1 text-sm text-zinc-500">
-              Main details guests will
-              see.
+              Main details guests will see.
             </p>
+
           </div>
 
           <div className="grid gap-5 lg:grid-cols-2">
+
             <Field
               label="Hotel name"
               required
@@ -874,19 +771,27 @@ export default function AdminEditHotelPage() {
               </select>
             </Field>
 
+            {/* PRICE */}
+
             <Field
               label="Starting price"
               required
-              hint="Per night in LKR."
+              hint="Per night"
             >
               <div className="relative">
-                <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-sm font-semibold text-zinc-400">
-                  LKR
-                </span>
+
+                <div className="pointer-events-none absolute inset-y-0 left-0 z-10 flex w-[4.25rem] items-center justify-center">
+
+                  <span className="text-xs font-extrabold tracking-wide text-[#D4AF37]">
+                    LKR
+                  </span>
+
+                </div>
 
                 <input
                   type="number"
                   min="0"
+                  step="1"
                   value={
                     form.priceFrom
                   }
@@ -897,12 +802,14 @@ export default function AdminEditHotelPage() {
                     )
                   }
                   placeholder="15000"
-                  className="input pl-14"
+                  className="input price-input"
                 />
+
               </div>
             </Field>
 
             <div className="lg:col-span-2">
+
               <Field
                 label="Description"
                 required
@@ -922,19 +829,27 @@ export default function AdminEditHotelPage() {
                   className="input resize-none"
                 />
               </Field>
+
             </div>
+
           </div>
+
         </section>
 
         {/* LOCATION */}
 
         <section className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-white/[0.025] sm:p-7">
+
           <div className="mb-7 flex items-start gap-3">
+
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#D4AF37]/10">
+
               <MapPin className="h-5 w-5 text-[#D4AF37]" />
+
             </div>
 
             <div>
+
               <h2 className="font-bold">
                 Location
               </h2>
@@ -943,11 +858,15 @@ export default function AdminEditHotelPage() {
                 Help guests find the
                 property.
               </p>
+
             </div>
+
           </div>
 
           <div className="grid gap-5 sm:grid-cols-2">
+
             <div className="sm:col-span-2">
+
               <Field
                 label="Address"
                 required
@@ -964,6 +883,7 @@ export default function AdminEditHotelPage() {
                   className="input"
                 />
               </Field>
+
             </div>
 
             <Field
@@ -1018,6 +938,7 @@ export default function AdminEditHotelPage() {
             </Field>
 
             <Field label="Country">
+
               <input
                 value={form.country}
                 onChange={(event) =>
@@ -1028,6 +949,7 @@ export default function AdminEditHotelPage() {
                 }
                 className="input"
               />
+
             </Field>
 
             <Field
@@ -1077,13 +999,17 @@ export default function AdminEditHotelPage() {
                 className="input"
               />
             </Field>
+
           </div>
+
         </section>
 
         {/* AMENITIES */}
 
         <section className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-white/[0.025] sm:p-7">
+
           <div className="mb-7">
+
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#D4AF37]">
               02
             </p>
@@ -1096,9 +1022,11 @@ export default function AdminEditHotelPage() {
               Add facilities available
               at this property.
             </p>
+
           </div>
 
           <div className="flex flex-col gap-3 sm:flex-row">
+
             <input
               value={
                 amenityInput
@@ -1131,11 +1059,13 @@ export default function AdminEditHotelPage() {
               <Plus className="h-4 w-4" />
               Add
             </button>
+
           </div>
 
           {form.amenities.length >
             0 && (
             <div className="mt-5 flex flex-wrap gap-2">
+
               {form.amenities.map(
                 (
                   amenity,
@@ -1145,6 +1075,7 @@ export default function AdminEditHotelPage() {
                     key={`${amenity}-${index}`}
                     className="inline-flex items-center gap-2 rounded-full border border-[#D4AF37]/20 bg-[#D4AF37]/10 px-3 py-2 text-xs font-semibold text-[#a88416] dark:text-[#D4AF37]"
                   >
+
                     {amenity}
 
                     <button
@@ -1158,34 +1089,45 @@ export default function AdminEditHotelPage() {
                     >
                       <X className="h-3 w-3" />
                     </button>
+
                   </span>
                 )
               )}
+
             </div>
           )}
+
         </section>
 
         {/* IMAGES */}
 
         <section className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-white/[0.025] sm:p-7">
+
           <div className="mb-7 flex items-start gap-3">
+
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#D4AF37]/10">
+
               <ImagePlus className="h-5 w-5 text-[#D4AF37]" />
+
             </div>
 
             <div>
+
               <h2 className="font-bold">
                 Hotel images
               </h2>
 
               <p className="mt-1 text-sm text-zinc-500">
-                Add image URLs for the
-                property gallery.
+                Add direct image URLs or
+                Google Drive share links.
               </p>
+
             </div>
+
           </div>
 
           <div className="flex flex-col gap-3 sm:flex-row">
+
             <input
               value={imageInput}
               onChange={(event) =>
@@ -1214,65 +1156,127 @@ export default function AdminEditHotelPage() {
               className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-zinc-900 px-5 py-3 text-sm font-bold text-white transition hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
             >
               <Plus className="h-4 w-4" />
+
               Add image
             </button>
+
           </div>
+
+          {/* GOOGLE DRIVE INFO */}
+
+          {imageInput &&
+            isGoogleDriveUrl(
+              imageInput
+            ) && (
+              <div className="mt-4 flex items-start gap-3 rounded-2xl border border-[#D4AF37]/20 bg-[#D4AF37]/5 p-4">
+
+                <ExternalLink className="mt-0.5 h-4 w-4 shrink-0 text-[#D4AF37]" />
+
+                <div>
+
+                  <p className="text-sm font-semibold text-[#D4AF37]">
+                    Google Drive image
+                  </p>
+
+                  <p className="mt-1 text-xs leading-5 text-zinc-500">
+                    Make sure the Drive
+                    file is shared as
+                    "Anyone with the link".
+                    The system will convert
+                    supported Drive links to
+                    an image preview URL.
+                  </p>
+
+                </div>
+
+              </div>
+            )}
 
           {form.images.length >
             0 && (
             <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+
               {form.images.map(
                 (
                   image,
                   index
-                ) => (
-                  <div
-                    key={`${image}-${index}`}
-                    className="group relative overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-100 dark:border-white/10 dark:bg-white/5"
-                  >
-                    <img
-                      src={image}
-                      alt={`Hotel image ${
-                        index + 1
-                      }`}
-                      className="h-40 w-full object-cover"
-                      onError={(
-                        event
-                      ) => {
-                        event.currentTarget.style.opacity =
-                          "0.3";
-                      }}
-                    />
-
-                    <button
-                      type="button"
-                      onClick={() =>
-                        removeImage(
-                          index
+                ) => {
+                  const previewUrl =
+                    isGoogleDriveUrl(
+                      image
+                    )
+                      ? getGoogleDrivePreviewUrl(
+                          image
                         )
-                      }
-                      className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-black/70 text-white backdrop-blur transition hover:bg-red-500"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
+                      : image;
 
-                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-3 pt-8">
-                      <p className="truncate text-xs text-white">
-                        Image{" "}
-                        {index + 1}
-                      </p>
+                  return (
+                    <div
+                      key={`${image}-${index}`}
+                      className="group relative overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-100 dark:border-white/10 dark:bg-white/5"
+                    >
+
+                      <img
+                        src={
+                          previewUrl
+                        }
+                        alt={`Hotel image ${
+                          index + 1
+                        }`}
+                        className="h-40 w-full object-cover"
+                        onError={(
+                          event
+                        ) => {
+                          event.currentTarget.style.opacity =
+                            "0.25";
+                        }}
+                      />
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          removeImage(
+                            index
+                          )
+                        }
+                        className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-black/70 text-white backdrop-blur transition hover:bg-red-500"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+
+                      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-3 pt-8">
+
+                        <p className="truncate text-xs text-white">
+                          Image{" "}
+                          {index + 1}
+                        </p>
+
+                        {isGoogleDriveUrl(
+                          image
+                        ) && (
+                          <p className="mt-1 text-[10px] text-[#D4AF37]">
+                            Google Drive
+                          </p>
+                        )}
+
+                      </div>
+
                     </div>
-                  </div>
-                )
+                  );
+                }
               )}
+
             </div>
           )}
+
         </section>
 
         {/* PUBLISHING */}
 
         <section className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-white/[0.025] sm:p-7">
+
           <div className="mb-7">
+
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#D4AF37]">
               03
             </p>
@@ -1282,13 +1286,14 @@ export default function AdminEditHotelPage() {
             </h2>
 
             <p className="mt-1 text-sm text-zinc-500">
-              Control how this
-              property appears on
-              BookingLK.
+              Control how this property
+              appears on BookingLK.
             </p>
+
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
+
             <Toggle
               title="Publish hotel"
               description="Make this property visible to guests."
@@ -1316,12 +1321,15 @@ export default function AdminEditHotelPage() {
                 )
               }
             />
+
           </div>
+
         </section>
 
         {/* SUBMIT */}
 
         <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+
           <button
             type="button"
             disabled={saving}
@@ -1330,7 +1338,7 @@ export default function AdminEditHotelPage() {
                 "/admin/hotels"
               )
             }
-            className="rounded-xl border border-zinc-200 bg-white px-6 py-3 text-sm font-bold text-zinc-700 transition hover:border-zinc-300 dark:border-white/10 dark:bg-white/[0.025] dark:text-zinc-300 dark:hover:border-white/20"
+            className="rounded-xl border border-zinc-200 bg-white px-6 py-3 text-sm font-bold text-zinc-700 transition hover:border-zinc-300 dark:border-white/10 dark:bg-white/[0.025] dark:text-zinc-300 dark:hover:border-white/20 disabled:opacity-50"
           >
             Cancel
           </button>
@@ -1340,19 +1348,25 @@ export default function AdminEditHotelPage() {
             disabled={saving}
             className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#D4AF37] px-7 py-3 text-sm font-extrabold text-black shadow-lg shadow-[#D4AF37]/10 transition hover:-translate-y-0.5 hover:bg-[#e0bd4d] disabled:cursor-not-allowed disabled:opacity-50"
           >
+
             {saving ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Saving changes...
+
+                Creating hotel...
               </>
             ) : (
               <>
                 <Save className="h-4 w-4" />
-                Save changes
+
+                Save hotel
               </>
             )}
+
           </button>
+
         </div>
+
       </form>
 
       <style jsx>{`
@@ -1376,6 +1390,11 @@ export default function AdminEditHotelPage() {
             rgb(212 175 55 / 0.1);
         }
 
+        .price-input {
+          padding-left: 4.75rem;
+          font-weight: 600;
+        }
+
         :global(.dark) .input {
           border-color:
             rgb(255 255 255 / 0.1);
@@ -1395,13 +1414,28 @@ export default function AdminEditHotelPage() {
           border-color: #d4af37;
         }
 
+        :global(.dark)
+          .price-input {
+          padding-left: 4.75rem;
+        }
+
         select.input {
           cursor: pointer;
         }
+
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button {
+          opacity: 1;
+        }
       `}</style>
+
     </div>
   );
 }
+
+/* =========================================================
+   FIELD
+========================================================= */
 
 function Field({
   label,
@@ -1416,8 +1450,11 @@ function Field({
 }) {
   return (
     <div>
+
       <div className="mb-2 flex items-center justify-between gap-3">
+
         <label className="text-sm font-semibold">
+
           {label}
 
           {required && (
@@ -1425,6 +1462,7 @@ function Field({
               *
             </span>
           )}
+
         </label>
 
         {hint && (
@@ -1432,12 +1470,18 @@ function Field({
             {hint}
           </span>
         )}
+
       </div>
 
       {children}
+
     </div>
   );
 }
+
+/* =========================================================
+   TOGGLE
+========================================================= */
 
 function Toggle({
   title,
@@ -1464,7 +1508,9 @@ function Toggle({
           : "border-zinc-200 bg-zinc-50 dark:border-white/10 dark:bg-white/[0.02]"
       }`}
     >
+
       <div>
+
         <p className="text-sm font-bold">
           {title}
         </p>
@@ -1472,6 +1518,7 @@ function Toggle({
         <p className="mt-1 text-xs leading-5 text-zinc-500">
           {description}
         </p>
+
       </div>
 
       <div
@@ -1481,6 +1528,7 @@ function Toggle({
             : "bg-zinc-300 dark:bg-zinc-700"
         }`}
       >
+
         <div
           className={`absolute top-1 h-4 w-4 rounded-full bg-white shadow-sm transition ${
             checked
@@ -1488,7 +1536,9 @@ function Toggle({
               : "left-1"
           }`}
         />
+
       </div>
+
     </button>
   );
 }
