@@ -1,9 +1,11 @@
+
 import type { Metadata } from "next";
 import { Manrope, Inter } from "next/font/google";
 
 import "./globals.css";
 
 import { ThemeProvider } from "@/components/providers/theme-provider";
+import { Footer } from "@/components/footer/footer";
 
 const manrope = Manrope({
   variable: "--font-manrope",
@@ -27,10 +29,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="en"
-      suppressHydrationWarning
-    >
+    <html lang="en" suppressHydrationWarning>
       <body
         className={`
           ${manrope.variable}
@@ -42,9 +41,16 @@ export default function RootLayout({
         `}
       >
         <ThemeProvider>
-          {children}
+          <div className="flex min-h-screen flex-col">
+            <main className="flex-1">
+              {children}
+            </main>
+
+            <Footer />
+          </div>
         </ThemeProvider>
       </body>
     </html>
   );
 }
+

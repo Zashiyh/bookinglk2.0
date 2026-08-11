@@ -4,33 +4,43 @@ import mongoose, {
   Schema,
 } from "mongoose";
 
+/* =========================================================
+   TYPES
+========================================================= */
+
+export type RoomType =
+  | "STANDARD"
+  | "DELUXE"
+  | "SUITE"
+  | "FAMILY"
+  | "VILLA";
+
+export type BedType =
+  | "SINGLE"
+  | "DOUBLE"
+  | "QUEEN"
+  | "KING"
+  | "TWIN";
+
+export interface IRoomBed {
+  type: BedType;
+  count: number;
+}
+
 export interface IRoom extends Document {
   hotelId: mongoose.Types.ObjectId;
 
   name: string;
   description: string;
 
-  roomType:
-    | "STANDARD"
-    | "DELUXE"
-    | "SUITE"
-    | "FAMILY"
-    | "VILLA";
+  roomType: RoomType;
 
   pricePerNight: number;
   currency: "LKR";
 
   maxGuests: number;
 
-  beds: {
-    type:
-      | "SINGLE"
-      | "DOUBLE"
-      | "QUEEN"
-      | "KING"
-      | "TWIN";
-    count: number;
-  }[];
+  beds: IRoomBed[];
 
   size?: number;
 
@@ -46,7 +56,40 @@ export interface IRoom extends Document {
   updatedAt: Date;
 }
 
-const RoomSchema = new Schema(
+/* =========================================================
+   BED SCHEMA
+========================================================= */
+
+const BedSchema = new Schema<IRoomBed>(
+  {
+    type: {
+      type: String,
+      enum: [
+        "SINGLE",
+        "DOUBLE",
+        "QUEEN",
+        "KING",
+        "TWIN",
+      ],
+      required: true,
+    },
+
+    count: {
+      type: Number,
+      required: true,
+      min: 1,
+    },
+  },
+  {
+    _id: false,
+  }
+);
+
+/* =========================================================
+   ROOM SCHEMA
+========================================================= */
+
+const RoomSchema = new Schema<IRoom>(
   {
     hotelId: {
       type: Schema.Types.ObjectId,
@@ -65,6 +108,7 @@ const RoomSchema = new Schema(
     description: {
       type: String,
       required: true,
+      trim: true,
       maxlength: 2000,
     },
 
@@ -101,27 +145,11 @@ const RoomSchema = new Schema(
       max: 20,
     },
 
-    beds: [
-      {
-        type: {
-          type: String,
-          enum: [
-            "SINGLE",
-            "DOUBLE",
-            "QUEEN",
-            "KING",
-            "TWIN",
-          ],
-          required: true,
-        },
-
-        count: {
-          type: Number,
-          required: true,
-          min: 1,
-        },
-      },
-    ],
+    beds: {
+      type: [BedSchema],
+      required: true,
+      default: [],
+    },
 
     size: {
       type: Number,
@@ -151,10 +179,15 @@ const RoomSchema = new Schema(
       index: true,
     },
   },
+
   {
     timestamps: true,
   }
 );
+
+/* =========================================================
+   INDEXES
+========================================================= */
 
 RoomSchema.index({
   hotelId: 1,
@@ -166,6 +199,18 @@ RoomSchema.index({
   pricePerNight: 1,
 });
 
+RoomSchema.index({
+  hotelId: 1,
+  roomType: 1,
+});
+
+/* =========================================================
+   MODEL
+========================================================= */
+
 export const Room: Model<IRoom> =
   mongoose.models.Room ||
-  mongoose.model<IRoom>("Room", RoomSchema);
+  mongoose.model<IRoom>(
+    "Room",
+    RoomSchema
+  );

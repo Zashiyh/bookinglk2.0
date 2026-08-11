@@ -1,7 +1,7 @@
 "use client";
 
-import { FormEvent, useState } from "react";
-import { useRouter } from "next/navigation";
+import { FormEvent, useEffect, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
 import {
   ArrowLeft,
   Building2,
@@ -24,7 +24,7 @@ type PropertyType =
   | "HOSTEL"
   | "HOMESTAY";
 
-interface FormData {
+interface HotelForm {
   name: string;
   slug: string;
   description: string;
@@ -57,34 +57,13 @@ const propertyTypes: {
   { value: "VILLA", label: "Villa" },
   { value: "APARTMENT", label: "Apartment" },
   { value: "GUEST_HOUSE", label: "Guest House" },
-  { value: "BOUTIQUE_HOTEL", label: "Boutique Hotel" },
+  {
+    value: "BOUTIQUE_HOTEL",
+    label: "Boutique Hotel",
+  },
   { value: "HOSTEL", label: "Hostel" },
   { value: "HOMESTAY", label: "Homestay" },
 ];
-
-const defaultForm: FormData = {
-  name: "",
-  slug: "",
-  description: "",
-  propertyType: "HOTEL",
-
-  address: "",
-  city: "",
-  district: "",
-  province: "",
-  country: "Sri Lanka",
-
-  longitude: "",
-  latitude: "",
-
-  priceFrom: "",
-
-  amenities: [],
-  images: [],
-
-  isVerified: false,
-  isPublished: false,
-};
 
 function createSlug(value: string) {
   return value
@@ -95,11 +74,65 @@ function createSlug(value: string) {
     .replace(/-+/g, "-");
 }
 
-export default function AdminNewHotelPage() {
+function getSafePropertyType(
+  value: unknown
+): PropertyType {
+  const validTypes: PropertyType[] = [
+    "HOTEL",
+    "RESORT",
+    "VILLA",
+    "APARTMENT",
+    "GUEST_HOUSE",
+    "BOUTIQUE_HOTEL",
+    "HOSTEL",
+    "HOMESTAY",
+  ];
+
+  if (
+    typeof value === "string" &&
+    validTypes.includes(
+      value as PropertyType
+    )
+  ) {
+    return value as PropertyType;
+  }
+
+  return "HOTEL";
+}
+
+export default function AdminEditHotelPage() {
   const router = useRouter();
 
-  const [form, setForm] =
-    useState<FormData>(defaultForm);
+  const params = useParams();
+
+  const id =
+    typeof params?.id === "string"
+      ? params.id
+      : "";
+
+  const [form, setForm] = useState<HotelForm>({
+    name: "",
+    slug: "",
+    description: "",
+    propertyType: "HOTEL",
+
+    address: "",
+    city: "",
+    district: "",
+    province: "",
+    country: "Sri Lanka",
+
+    longitude: "",
+    latitude: "",
+
+    priceFrom: "",
+
+    amenities: [],
+    images: [],
+
+    isVerified: false,
+    isPublished: false,
+  });
 
   const [amenityInput, setAmenityInput] =
     useState("");
@@ -107,13 +140,212 @@ export default function AdminNewHotelPage() {
   const [imageInput, setImageInput] =
     useState("");
 
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+  const [loading, setLoading] =
+    useState(true);
 
-  function updateField<K extends keyof FormData>(
+  const [saving, setSaving] =
+    useState(false);
+
+  const [error, setError] =
+    useState("");
+
+  const [success, setSuccess] =
+    useState("");
+
+  useEffect(() => {
+    if (!id) {
+      setError("Invalid hotel ID.");
+      setLoading(false);
+      return;
+    }
+
+    loadHotel();
+  }, [id]);
+
+  async function loadHotel() {
+    try {
+      setLoading(true);
+      setError("");
+
+      const response = await fetch(
+        `/api/admin/hotels/${id}`,
+        {
+          method: "GET",
+          credentials: "include",
+          cache: "no-store",
+        }
+      );
+
+      const contentType =
+        response.headers.get(
+          "content-type"
+        ) || "";
+
+      if (
+        !contentType.includes(
+          "application/json"
+        )
+      ) {
+        const text =
+          await response.text();
+
+        console.error(
+          "HOTEL_GET_NON_JSON:",
+          text
+        );
+
+        throw new Error(
+          `Server returned ${response.status} instead of JSON.`
+        );
+      }
+
+      const result =
+        await response.json();
+
+      if (
+        !response.ok ||
+        !result.success
+      ) {
+        throw new Error(
+          result.message ||
+            "Unable to load hotel."
+        );
+      }
+
+      const hotel = result.data;
+
+      if (!hotel) {
+        throw new Error(
+          "Hotel data was not returned."
+        );
+      }
+
+      const coordinates =
+        hotel.coordinates
+          ?.coordinates;
+
+      const longitude =
+        Array.isArray(coordinates) &&
+        coordinates.length >= 2
+          ? String(coordinates[0])
+          : "";
+
+      const latitude =
+        Array.isArray(coordinates) &&
+        coordinates.length >= 2
+          ? String(coordinates[1])
+          : "";
+
+      setForm({
+        name:
+          typeof hotel.name ===
+          "string"
+            ? hotel.name
+            : "",
+
+        slug:
+          typeof hotel.slug ===
+          "string"
+            ? hotel.slug
+            : "",
+
+        description:
+          typeof hotel.description ===
+          "string"
+            ? hotel.description
+            : "",
+
+        propertyType:
+          getSafePropertyType(
+            hotel.propertyType
+          ),
+
+        address:
+          hotel.location?.address ||
+          "",
+
+        city:
+          hotel.location?.city ||
+          "",
+
+        district:
+          hotel.location?.district ||
+          "",
+
+        province:
+          hotel.location?.province ||
+          "",
+
+        country:
+          hotel.location?.country ||
+          "Sri Lanka",
+
+        longitude,
+
+        latitude,
+
+        priceFrom:
+          hotel.priceFrom !==
+            undefined &&
+          hotel.priceFrom !== null
+            ? String(
+                hotel.priceFrom
+              )
+            : "",
+
+        amenities:
+          Array.isArray(
+            hotel.amenities
+          )
+            ? hotel.amenities.filter(
+                (item: unknown) =>
+                  typeof item ===
+                  "string"
+              )
+            : [],
+
+        images:
+          Array.isArray(
+            hotel.images
+          )
+            ? hotel.images.filter(
+                (item: unknown) =>
+                  typeof item ===
+                  "string"
+              )
+            : [],
+
+        isVerified:
+          Boolean(
+            hotel.isVerified
+          ),
+
+        isPublished:
+          Boolean(
+            hotel.isPublished
+          ),
+      });
+    } catch (error) {
+      console.error(
+        "LOAD_HOTEL_ERROR:",
+        error
+      );
+
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Unable to load hotel."
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function updateField<
+    K extends keyof HotelForm
+  >(
     field: K,
-    value: FormData[K]
+    value: HotelForm[K]
   ) {
     setForm((current) => ({
       ...current,
@@ -121,36 +353,44 @@ export default function AdminNewHotelPage() {
     }));
   }
 
-  function handleNameChange(value: string) {
+  function handleNameChange(
+    value: string
+  ) {
     setForm((current) => ({
       ...current,
+
       name: value,
+
       slug:
         current.slug === "" ||
-        current.slug === createSlug(current.name)
+        current.slug ===
+          createSlug(current.name)
           ? createSlug(value)
           : current.slug,
     }));
   }
 
   function addAmenity() {
-    const value = amenityInput.trim();
+    const value =
+      amenityInput.trim();
 
     if (!value) return;
 
-    if (
+    const exists =
       form.amenities.some(
         (item) =>
           item.toLowerCase() ===
           value.toLowerCase()
-      )
-    ) {
+      );
+
+    if (exists) {
       setAmenityInput("");
       return;
     }
 
     setForm((current) => ({
       ...current,
+
       amenities: [
         ...current.amenities,
         value,
@@ -160,18 +400,23 @@ export default function AdminNewHotelPage() {
     setAmenityInput("");
   }
 
-  function removeAmenity(index: number) {
+  function removeAmenity(
+    index: number
+  ) {
     setForm((current) => ({
       ...current,
-      amenities: current.amenities.filter(
-        (_, itemIndex) =>
-          itemIndex !== index
-      ),
+
+      amenities:
+        current.amenities.filter(
+          (_, itemIndex) =>
+            itemIndex !== index
+        ),
     }));
   }
 
   function addImage() {
-    const value = imageInput.trim();
+    const value =
+      imageInput.trim();
 
     if (!value) return;
 
@@ -182,6 +427,7 @@ export default function AdminNewHotelPage() {
 
     setForm((current) => ({
       ...current,
+
       images: [
         ...current.images,
         value,
@@ -191,13 +437,17 @@ export default function AdminNewHotelPage() {
     setImageInput("");
   }
 
-  function removeImage(index: number) {
+  function removeImage(
+    index: number
+  ) {
     setForm((current) => ({
       ...current,
-      images: current.images.filter(
-        (_, itemIndex) =>
-          itemIndex !== index
-      ),
+
+      images:
+        current.images.filter(
+          (_, itemIndex) =>
+            itemIndex !== index
+        ),
     }));
   }
 
@@ -209,13 +459,22 @@ export default function AdminNewHotelPage() {
     setError("");
     setSuccess("");
 
+    if (!id) {
+      setError("Invalid hotel ID.");
+      return;
+    }
+
     if (!form.name.trim()) {
-      setError("Hotel name is required.");
+      setError(
+        "Hotel name is required."
+      );
       return;
     }
 
     if (!form.slug.trim()) {
-      setError("Hotel slug is required.");
+      setError(
+        "Hotel slug is required."
+      );
       return;
     }
 
@@ -227,7 +486,9 @@ export default function AdminNewHotelPage() {
     }
 
     if (!form.address.trim()) {
-      setError("Hotel address is required.");
+      setError(
+        "Hotel address is required."
+      );
       return;
     }
 
@@ -237,16 +498,21 @@ export default function AdminNewHotelPage() {
     }
 
     if (!form.district.trim()) {
-      setError("District is required.");
+      setError(
+        "District is required."
+      );
       return;
     }
 
     if (!form.province.trim()) {
-      setError("Province is required.");
+      setError(
+        "Province is required."
+      );
       return;
     }
 
-    const price = Number(form.priceFrom);
+    const price =
+      Number(form.priceFrom);
 
     if (
       form.priceFrom === "" ||
@@ -259,13 +525,11 @@ export default function AdminNewHotelPage() {
       return;
     }
 
-    const longitude = Number(
-      form.longitude
-    );
+    const longitude =
+      Number(form.longitude);
 
-    const latitude = Number(
-      form.latitude
-    );
+    const latitude =
+      Number(form.latitude);
 
     if (
       !Number.isFinite(longitude) ||
@@ -293,20 +557,25 @@ export default function AdminNewHotelPage() {
       setSaving(true);
 
       const response = await fetch(
-        "/api/admin/hotels",
+        `/api/admin/hotels/${id}`,
         {
-          method: "POST",
+          method: "PATCH",
+
           headers: {
             "Content-Type":
               "application/json",
           },
-          credentials: "include",
-          body: JSON.stringify({
-            name: form.name.trim(),
 
-            slug: form.slug
-              .trim()
-              .toLowerCase(),
+          credentials: "include",
+
+          body: JSON.stringify({
+            name:
+              form.name.trim(),
+
+            slug:
+              form.slug
+                .trim()
+                .toLowerCase(),
 
             description:
               form.description.trim(),
@@ -341,9 +610,6 @@ export default function AdminNewHotelPage() {
               ],
             },
 
-            rating: 0,
-            reviewCount: 0,
-
             priceFrom: price,
 
             currency: "LKR",
@@ -363,6 +629,29 @@ export default function AdminNewHotelPage() {
         }
       );
 
+      const contentType =
+        response.headers.get(
+          "content-type"
+        ) || "";
+
+      if (
+        !contentType.includes(
+          "application/json"
+        )
+      ) {
+        const text =
+          await response.text();
+
+        console.error(
+          "HOTEL_UPDATE_NON_JSON:",
+          text
+        );
+
+        throw new Error(
+          `Server returned ${response.status} instead of JSON.`
+        );
+      }
+
       const result =
         await response.json();
 
@@ -372,32 +661,49 @@ export default function AdminNewHotelPage() {
       ) {
         throw new Error(
           result.message ||
-            `Unable to create hotel (${response.status})`
+            `Unable to update hotel (${response.status}).`
         );
       }
 
       setSuccess(
-        "Hotel created successfully."
+        "Hotel updated successfully."
       );
 
       setTimeout(() => {
-        router.push("/admin/hotels");
+        router.push(
+          "/admin/hotels"
+        );
+
         router.refresh();
       }, 700);
     } catch (error) {
       console.error(
-        "CREATE_HOTEL_ERROR:",
+        "UPDATE_HOTEL_ERROR:",
         error
       );
 
       setError(
         error instanceof Error
           ? error.message
-          : "Unable to create hotel."
+          : "Unable to update hotel."
       );
     } finally {
       setSaving(false);
     }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[500px] items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="h-8 w-8 animate-spin text-[#D4AF37]" />
+
+          <p className="text-sm text-zinc-500">
+            Loading hotel...
+          </p>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -430,14 +736,16 @@ export default function AdminNewHotelPage() {
               </p>
 
               <h1 className="mt-1 text-3xl font-bold tracking-tight sm:text-4xl">
-                Add new hotel
+                Edit hotel
               </h1>
             </div>
           </div>
 
           <p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-500">
-            Create a new property and make it
-            available for BookingLK guests.
+            Update this property's
+            information, location,
+            amenities and publishing
+            settings.
           </p>
         </div>
 
@@ -467,6 +775,7 @@ export default function AdminNewHotelPage() {
       {success && (
         <div className="mb-6 flex items-center gap-3 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-3 text-sm text-emerald-400">
           <Check className="h-4 w-4" />
+
           <span>{success}</span>
         </div>
       )}
@@ -488,7 +797,8 @@ export default function AdminNewHotelPage() {
             </h2>
 
             <p className="mt-1 text-sm text-zinc-500">
-              Main details guests will see.
+              Main details guests will
+              see.
             </p>
           </div>
 
@@ -534,12 +844,15 @@ export default function AdminNewHotelPage() {
               required
             >
               <select
-                value={form.propertyType}
+                value={
+                  form.propertyType
+                }
                 onChange={(event) =>
                   updateField(
                     "propertyType",
-                    event.target
-                      .value as PropertyType
+                    getSafePropertyType(
+                      event.target.value
+                    )
                   )
                 }
                 className="input"
@@ -547,7 +860,9 @@ export default function AdminNewHotelPage() {
                 {propertyTypes.map(
                   (type) => (
                     <option
-                      key={type.value}
+                      key={
+                        type.value
+                      }
                       value={
                         type.value
                       }
@@ -625,7 +940,8 @@ export default function AdminNewHotelPage() {
               </h2>
 
               <p className="mt-1 text-sm text-zinc-500">
-                Help guests find the property.
+                Help guests find the
+                property.
               </p>
             </div>
           </div>
@@ -717,12 +1033,16 @@ export default function AdminNewHotelPage() {
             <Field
               label="Longitude"
               required
-              hint="Example: 80.6337"
+              hint="Between -180 and 180"
             >
               <input
                 type="number"
                 step="any"
-                value={form.longitude}
+                min="-180"
+                max="180"
+                value={
+                  form.longitude
+                }
                 onChange={(event) =>
                   updateField(
                     "longitude",
@@ -737,12 +1057,16 @@ export default function AdminNewHotelPage() {
             <Field
               label="Latitude"
               required
-              hint="Example: 7.2906"
+              hint="Between -90 and 90"
             >
               <input
                 type="number"
                 step="any"
-                value={form.latitude}
+                min="-90"
+                max="90"
+                value={
+                  form.latitude
+                }
                 onChange={(event) =>
                   updateField(
                     "latitude",
@@ -769,14 +1093,16 @@ export default function AdminNewHotelPage() {
             </h2>
 
             <p className="mt-1 text-sm text-zinc-500">
-              Add facilities available at this
-              property.
+              Add facilities available
+              at this property.
             </p>
           </div>
 
           <div className="flex flex-col gap-3 sm:flex-row">
             <input
-              value={amenityInput}
+              value={
+                amenityInput
+              }
               onChange={(event) =>
                 setAmenityInput(
                   event.target.value
@@ -784,7 +1110,8 @@ export default function AdminNewHotelPage() {
               }
               onKeyDown={(event) => {
                 if (
-                  event.key === "Enter"
+                  event.key ===
+                  "Enter"
                 ) {
                   event.preventDefault();
                   addAmenity();
@@ -796,7 +1123,9 @@ export default function AdminNewHotelPage() {
 
             <button
               type="button"
-              onClick={addAmenity}
+              onClick={
+                addAmenity
+              }
               className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-zinc-900 px-5 py-3 text-sm font-bold text-white transition hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
             >
               <Plus className="h-4 w-4" />
@@ -804,10 +1133,14 @@ export default function AdminNewHotelPage() {
             </button>
           </div>
 
-          {form.amenities.length > 0 && (
+          {form.amenities.length >
+            0 && (
             <div className="mt-5 flex flex-wrap gap-2">
               {form.amenities.map(
-                (amenity, index) => (
+                (
+                  amenity,
+                  index
+                ) => (
                   <span
                     key={`${amenity}-${index}`}
                     className="inline-flex items-center gap-2 rounded-full border border-[#D4AF37]/20 bg-[#D4AF37]/10 px-3 py-2 text-xs font-semibold text-[#a88416] dark:text-[#D4AF37]"
@@ -846,8 +1179,8 @@ export default function AdminNewHotelPage() {
               </h2>
 
               <p className="mt-1 text-sm text-zinc-500">
-                Add image URLs for the property
-                gallery.
+                Add image URLs for the
+                property gallery.
               </p>
             </div>
           </div>
@@ -862,7 +1195,8 @@ export default function AdminNewHotelPage() {
               }
               onKeyDown={(event) => {
                 if (
-                  event.key === "Enter"
+                  event.key ===
+                  "Enter"
                 ) {
                   event.preventDefault();
                   addImage();
@@ -874,7 +1208,9 @@ export default function AdminNewHotelPage() {
 
             <button
               type="button"
-              onClick={addImage}
+              onClick={
+                addImage
+              }
               className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-zinc-900 px-5 py-3 text-sm font-bold text-white transition hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
             >
               <Plus className="h-4 w-4" />
@@ -882,10 +1218,14 @@ export default function AdminNewHotelPage() {
             </button>
           </div>
 
-          {form.images.length > 0 && (
+          {form.images.length >
+            0 && (
             <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {form.images.map(
-                (image, index) => (
+                (
+                  image,
+                  index
+                ) => (
                   <div
                     key={`${image}-${index}`}
                     className="group relative overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-100 dark:border-white/10 dark:bg-white/5"
@@ -896,7 +1236,9 @@ export default function AdminNewHotelPage() {
                         index + 1
                       }`}
                       className="h-40 w-full object-cover"
-                      onError={(event) => {
+                      onError={(
+                        event
+                      ) => {
                         event.currentTarget.style.opacity =
                           "0.3";
                       }}
@@ -916,7 +1258,8 @@ export default function AdminNewHotelPage() {
 
                     <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-3 pt-8">
                       <p className="truncate text-xs text-white">
-                        Image {index + 1}
+                        Image{" "}
+                        {index + 1}
                       </p>
                     </div>
                   </div>
@@ -926,7 +1269,7 @@ export default function AdminNewHotelPage() {
           )}
         </section>
 
-        {/* PUBLISH SETTINGS */}
+        {/* PUBLISHING */}
 
         <section className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-white/[0.025] sm:p-7">
           <div className="mb-7">
@@ -939,8 +1282,9 @@ export default function AdminNewHotelPage() {
             </h2>
 
             <p className="mt-1 text-sm text-zinc-500">
-              Control how this property appears
-              on BookingLK.
+              Control how this
+              property appears on
+              BookingLK.
             </p>
           </div>
 
@@ -948,7 +1292,9 @@ export default function AdminNewHotelPage() {
             <Toggle
               title="Publish hotel"
               description="Make this property visible to guests."
-              checked={form.isPublished}
+              checked={
+                form.isPublished
+              }
               onChange={(value) =>
                 updateField(
                   "isPublished",
@@ -960,7 +1306,9 @@ export default function AdminNewHotelPage() {
             <Toggle
               title="Verified property"
               description="Mark this property as verified."
-              checked={form.isVerified}
+              checked={
+                form.isVerified
+              }
               onChange={(value) =>
                 updateField(
                   "isVerified",
@@ -995,12 +1343,12 @@ export default function AdminNewHotelPage() {
             {saving ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Creating hotel...
+                Saving changes...
               </>
             ) : (
               <>
                 <Save className="h-4 w-4" />
-                Create hotel
+                Save changes
               </>
             )}
           </button>
@@ -1023,27 +1371,27 @@ export default function AdminNewHotelPage() {
 
         .input:focus {
           border-color: #d4af37;
-          box-shadow: 0 0 0 3px
+          box-shadow:
+            0 0 0 3px
             rgb(212 175 55 / 0.1);
         }
 
         :global(.dark) .input {
-          border-color: rgb(
-            255 255 255 / 0.1
-          );
-          background: rgb(
-            255 255 255 / 0.025
-          );
+          border-color:
+            rgb(255 255 255 / 0.1);
+          background:
+            rgb(255 255 255 / 0.025);
           color: white;
         }
 
-        :global(.dark) .input::placeholder {
-          color: rgb(
-            161 161 170
-          );
+        :global(.dark)
+          .input::placeholder {
+          color:
+            rgb(161 161 170);
         }
 
-        :global(.dark) .input:focus {
+        :global(.dark)
+          .input:focus {
           border-color: #d4af37;
         }
 
@@ -1071,6 +1419,7 @@ function Field({
       <div className="mb-2 flex items-center justify-between gap-3">
         <label className="text-sm font-semibold">
           {label}
+
           {required && (
             <span className="ml-1 text-[#D4AF37]">
               *
@@ -1099,7 +1448,9 @@ function Toggle({
   title: string;
   description: string;
   checked: boolean;
-  onChange: (value: boolean) => void;
+  onChange: (
+    value: boolean
+  ) => void;
 }) {
   return (
     <button
