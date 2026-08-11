@@ -735,7 +735,7 @@ export default function CheckoutPage() {
                         event.target.value
                       )
                     }
-                    placeholder="Sashika"
+                    placeholder="John"
                     className="mt-2 w-full rounded-2xl border border-zinc-200 bg-white px-4 py-3.5 text-sm outline-none focus:border-[#D4AF37] dark:border-white/10 dark:bg-[#0b0b0b]"
                     required
                   />
@@ -753,7 +753,7 @@ export default function CheckoutPage() {
                         event.target.value
                       )
                     }
-                    placeholder="Madushan"
+                    placeholder="Doe"
                     className="mt-2 w-full rounded-2xl border border-zinc-200 bg-white px-4 py-3.5 text-sm outline-none focus:border-[#D4AF37] dark:border-white/10 dark:bg-[#0b0b0b]"
                     required
                   />

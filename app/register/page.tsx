@@ -212,7 +212,7 @@ export default function RegisterPage() {
                         onChange={(event) =>
                           setFirstName(event.target.value)
                         }
-                        placeholder="Sashika"
+                        placeholder="John"
                         className="w-full rounded-2xl border border-zinc-200 bg-white px-11 py-3.5 text-sm outline-none transition placeholder:text-zinc-400 focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/10 dark:border-white/10 dark:bg-[#111111] dark:focus:border-[#D4AF37]"
                       />
                     </div>
@@ -235,7 +235,7 @@ export default function RegisterPage() {
                       onChange={(event) =>
                         setLastName(event.target.value)
                       }
-                      placeholder="Madushan"
+                      placeholder="Doe"
                       className="mt-2 w-full rounded-2xl border border-zinc-200 bg-white px-4 py-3.5 text-sm outline-none transition placeholder:text-zinc-400 focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/10 dark:border-white/10 dark:bg-[#111111] dark:focus:border-[#D4AF37]"
                     />
                   </div>
