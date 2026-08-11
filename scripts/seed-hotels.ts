@@ -1,3 +1,4 @@
+
 import "dotenv/config";
 import mongoose from "mongoose";
 
@@ -9,12 +10,9 @@ const hotels = [
   {
     name: "Kandy Lake Grand",
     slug: "kandy-lake-grand",
-
     description:
       "A premium city escape overlooking the beautiful surroundings of Kandy, offering elegant rooms, modern amenities and easy access to the city's cultural attractions.",
-
     propertyType: "HOTEL",
-
     location: {
       address: "Kandy Lake Road, Kandy",
       city: "Kandy",
@@ -22,18 +20,14 @@ const hotels = [
       province: "Central Province",
       country: "Sri Lanka",
     },
-
     coordinates: {
       type: "Point",
       coordinates: [80.6337, 7.2906],
     },
-
     rating: 4.7,
     reviewCount: 328,
-
     priceFrom: 28000,
     currency: "LKR",
-
     amenities: [
       "WiFi",
       "Swimming Pool",
@@ -42,12 +36,10 @@ const hotels = [
       "Restaurant",
       "Air Conditioning",
     ],
-
     images: [
       "https://images.unsplash.com/photo-1566073771259-6a8506099945",
       "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b",
     ],
-
     isVerified: true,
     isPublished: true,
   },
@@ -55,12 +47,9 @@ const hotels = [
   {
     name: "Colombo Ocean Pearl",
     slug: "colombo-ocean-pearl",
-
     description:
       "A stylish urban stay close to Colombo's business district, shopping destinations and the Indian Ocean coastline.",
-
     propertyType: "HOTEL",
-
     location: {
       address: "Marine Drive, Colombo",
       city: "Colombo",
@@ -68,18 +57,14 @@ const hotels = [
       province: "Western Province",
       country: "Sri Lanka",
     },
-
     coordinates: {
       type: "Point",
       coordinates: [79.8612, 6.9271],
     },
-
     rating: 4.6,
     reviewCount: 512,
-
     priceFrom: 32000,
     currency: "LKR",
-
     amenities: [
       "WiFi",
       "Swimming Pool",
@@ -89,12 +74,10 @@ const hotels = [
       "Airport Shuttle",
       "Air Conditioning",
     ],
-
     images: [
       "https://images.unsplash.com/photo-1564501049412-61c2a3083791",
       "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb",
     ],
-
     isVerified: true,
     isPublished: true,
   },
@@ -102,12 +85,9 @@ const hotels = [
   {
     name: "Ella Mountain Retreat",
     slug: "ella-mountain-retreat",
-
     description:
       "A peaceful mountain retreat surrounded by the spectacular landscapes of Ella, perfect for nature lovers and adventure travellers.",
-
     propertyType: "RESORT",
-
     location: {
       address: "Passara Road, Ella",
       city: "Ella",
@@ -115,18 +95,14 @@ const hotels = [
       province: "Uva Province",
       country: "Sri Lanka",
     },
-
     coordinates: {
       type: "Point",
       coordinates: [81.0466, 6.8667],
     },
-
     rating: 4.9,
     reviewCount: 741,
-
     priceFrom: 24000,
     currency: "LKR",
-
     amenities: [
       "WiFi",
       "Breakfast",
@@ -135,12 +111,10 @@ const hotels = [
       "Mountain View",
       "Air Conditioning",
     ],
-
     images: [
       "https://images.unsplash.com/photo-1584132967334-10e028bd69f7",
       "https://images.unsplash.com/photo-1601918774946-25832a4be0d6",
     ],
-
     isVerified: true,
     isPublished: true,
   },
@@ -148,12 +122,9 @@ const hotels = [
   {
     name: "Galle Fort Heritage Villa",
     slug: "galle-fort-heritage-villa",
-
     description:
       "A charming heritage-inspired villa near the historic Galle Fort, combining traditional Sri Lankan character with modern comfort.",
-
     propertyType: "VILLA",
-
     location: {
       address: "Galle Fort, Galle",
       city: "Galle",
@@ -161,18 +132,14 @@ const hotels = [
       province: "Southern Province",
       country: "Sri Lanka",
     },
-
     coordinates: {
       type: "Point",
       coordinates: [80.217, 6.0329],
     },
-
     rating: 4.8,
     reviewCount: 286,
-
     priceFrom: 35000,
     currency: "LKR",
-
     amenities: [
       "WiFi",
       "Swimming Pool",
@@ -181,12 +148,10 @@ const hotels = [
       "Air Conditioning",
       "Parking",
     ],
-
     images: [
       "https://images.unsplash.com/photo-1584132967334-10e028bd69f7",
       "https://images.unsplash.com/photo-1564013799919-ab600027ffc6",
     ],
-
     isVerified: true,
     isPublished: true,
   },
@@ -194,12 +159,9 @@ const hotels = [
   {
     name: "Nuwara Eliya Hillside Lodge",
     slug: "nuwara-eliya-hillside-lodge",
-
     description:
       "A cosy hillside property surrounded by tea country and cool mountain air, ideal for relaxing getaways in Nuwara Eliya.",
-
     propertyType: "BOUTIQUE_HOTEL",
-
     location: {
       address: "Hillside Road, Nuwara Eliya",
       city: "Nuwara Eliya",
@@ -207,18 +169,14 @@ const hotels = [
       province: "Central Province",
       country: "Sri Lanka",
     },
-
     coordinates: {
       type: "Point",
       coordinates: [80.7718, 6.9497],
     },
-
     rating: 4.5,
     reviewCount: 194,
-
     priceFrom: 22000,
     currency: "LKR",
-
     amenities: [
       "WiFi",
       "Breakfast",
@@ -227,12 +185,10 @@ const hotels = [
       "Mountain View",
       "Heating",
     ],
-
     images: [
       "https://images.unsplash.com/photo-1510798831971-661eb04b3739",
       "https://images.unsplash.com/photo-1445019980597-93fa8acb246c",
     ],
-
     isVerified: true,
     isPublished: true,
   },
@@ -240,12 +196,9 @@ const hotels = [
   {
     name: "Mirissa Beach Escape",
     slug: "mirissa-beach-escape",
-
     description:
       "A relaxed coastal stay just moments from the famous beaches of Mirissa, designed for travellers looking for sun, sea and tropical experiences.",
-
     propertyType: "RESORT",
-
     location: {
       address: "Beach Road, Mirissa",
       city: "Mirissa",
@@ -253,18 +206,14 @@ const hotels = [
       province: "Southern Province",
       country: "Sri Lanka",
     },
-
     coordinates: {
       type: "Point",
       coordinates: [80.4588, 5.9483],
     },
-
     rating: 4.7,
     reviewCount: 432,
-
     priceFrom: 26000,
     currency: "LKR",
-
     amenities: [
       "WiFi",
       "Swimming Pool",
@@ -273,12 +222,10 @@ const hotels = [
       "Restaurant",
       "Airport Shuttle",
     ],
-
     images: [
       "https://images.unsplash.com/photo-1507525428034-b723cf961d3e",
       "https://images.unsplash.com/photo-1540541338287-41700207dee6",
     ],
-
     isVerified: true,
     isPublished: true,
   },
@@ -286,12 +233,9 @@ const hotels = [
   {
     name: "Sigiriya Heritage Stay",
     slug: "sigiriya-heritage-stay",
-
     description:
       "A peaceful stay surrounded by the natural beauty and cultural heritage of Sigiriya, ideal for exploring the ancient rock fortress and nearby attractions.",
-
     propertyType: "GUEST_HOUSE",
-
     location: {
       address: "Sigiriya Road, Sigiriya",
       city: "Sigiriya",
@@ -299,18 +243,14 @@ const hotels = [
       province: "Central Province",
       country: "Sri Lanka",
     },
-
     coordinates: {
       type: "Point",
       coordinates: [80.7603, 7.957],
     },
-
     rating: 4.6,
     reviewCount: 217,
-
     priceFrom: 15000,
     currency: "LKR",
-
     amenities: [
       "WiFi",
       "Breakfast",
@@ -318,12 +258,10 @@ const hotels = [
       "Restaurant",
       "Air Conditioning",
     ],
-
     images: [
       "https://images.unsplash.com/photo-1537996194471-e657df975ab4",
       "https://images.unsplash.com/photo-1564501049412-61c2a3083791",
     ],
-
     isVerified: true,
     isPublished: true,
   },
@@ -331,12 +269,9 @@ const hotels = [
   {
     name: "Bentota Palm Resort",
     slug: "bentota-palm-resort",
-
     description:
       "A tropical resort experience near Bentota's golden beaches, featuring spacious rooms, a swimming pool and relaxing surroundings.",
-
     propertyType: "RESORT",
-
     location: {
       address: "Beach Road, Bentota",
       city: "Bentota",
@@ -344,18 +279,14 @@ const hotels = [
       province: "Southern Province",
       country: "Sri Lanka",
     },
-
     coordinates: {
       type: "Point",
       coordinates: [80.0, 6.4211],
     },
-
     rating: 4.4,
     reviewCount: 365,
-
     priceFrom: 30000,
     currency: "LKR",
-
     amenities: [
       "WiFi",
       "Swimming Pool",
@@ -365,12 +296,10 @@ const hotels = [
       "Parking",
       "Gym",
     ],
-
     images: [
       "https://images.unsplash.com/photo-1571896349842-33c89424de2d",
       "https://images.unsplash.com/photo-1568084680786-a84f91d1153c",
     ],
-
     isVerified: true,
     isPublished: true,
   },
@@ -378,12 +307,9 @@ const hotels = [
   {
     name: "Negombo Lagoon Retreat",
     slug: "negombo-lagoon-retreat",
-
     description:
       "A comfortable coastal retreat near Negombo Lagoon and the beach, offering convenient access to Colombo and Bandaranaike International Airport.",
-
     propertyType: "HOTEL",
-
     location: {
       address: "Lagoon Road, Negombo",
       city: "Negombo",
@@ -391,18 +317,14 @@ const hotels = [
       province: "Western Province",
       country: "Sri Lanka",
     },
-
     coordinates: {
       type: "Point",
       coordinates: [79.8358, 7.2083],
     },
-
     rating: 4.5,
     reviewCount: 276,
-
     priceFrom: 21000,
     currency: "LKR",
-
     amenities: [
       "WiFi",
       "Swimming Pool",
@@ -411,12 +333,10 @@ const hotels = [
       "Breakfast",
       "Parking",
     ],
-
     images: [
       "https://images.unsplash.com/photo-1564501049412-61c2a3083791",
       "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb",
     ],
-
     isVerified: true,
     isPublished: true,
   },
@@ -424,12 +344,9 @@ const hotels = [
   {
     name: "Trinco Ocean Breeze",
     slug: "trinco-ocean-breeze",
-
     description:
       "A tropical coastal property in Trincomalee, offering easy access to beautiful beaches and the region's famous marine attractions.",
-
     propertyType: "HOTEL",
-
     location: {
       address: "Uppuveli Beach Road, Trincomalee",
       city: "Trincomalee",
@@ -437,18 +354,14 @@ const hotels = [
       province: "Eastern Province",
       country: "Sri Lanka",
     },
-
     coordinates: {
       type: "Point",
       coordinates: [81.218, 8.5874],
     },
-
     rating: 4.6,
     reviewCount: 188,
-
     priceFrom: 19000,
     currency: "LKR",
-
     amenities: [
       "WiFi",
       "Beach Access",
@@ -457,12 +370,10 @@ const hotels = [
       "Restaurant",
       "Parking",
     ],
-
     images: [
       "https://images.unsplash.com/photo-1507525428034-b723cf961d3e",
       "https://images.unsplash.com/photo-1540541338287-41700207dee6",
     ],
-
     isVerified: true,
     isPublished: true,
   },
@@ -479,7 +390,9 @@ async function seedHotels() {
     /*
      * Find or create a development owner.
      *
-     * Hotel.ownerId is required by the Hotel model.
+     * IMPORTANT:
+     * The User model uses firstName / lastName,
+     * not a `name` field.
      */
 
     let owner = await User.findOne({
@@ -488,7 +401,8 @@ async function seedHotels() {
 
     if (!owner) {
       owner = await User.create({
-        name: "BookingLK Demo Owner",
+        firstName: "BookingLK",
+        lastName: "Demo Owner",
         email: "demo-owner@bookinglk.dev",
         password: "development-only-password",
         role: "HOTEL_OWNER",
@@ -501,8 +415,6 @@ async function seedHotels() {
 
     /*
      * Remove previous seed hotels.
-     *
-     * This prevents duplicates when running the seed again.
      */
 
     await Hotel.deleteMany({
@@ -518,8 +430,13 @@ async function seedHotels() {
       ownerId: owner._id,
     }));
 
-    const createdHotels =
-      await Hotel.insertMany(hotelsWithOwner);
+    /*
+     * Insert hotels.
+     */
+
+    const createdHotels = await Hotel.insertMany(
+      hotelsWithOwner
+    );
 
     console.log(
       `Successfully seeded ${createdHotels.length} hotels.`
@@ -535,11 +452,7 @@ async function seedHotels() {
 
     console.log("\nSeed completed successfully.");
   } catch (error) {
-    console.error(
-      "Hotel seed failed:",
-      error
-    );
-
+    console.error("Hotel seed failed:", error);
     process.exitCode = 1;
   } finally {
     await mongoose.disconnect();
