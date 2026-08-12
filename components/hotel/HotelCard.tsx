@@ -1,4 +1,3 @@
-
 "use client";
 
 import { motion } from "framer-motion";
@@ -14,6 +13,9 @@ import {
   Dumbbell,
   Coffee,
   Sparkles,
+  BedDouble,
+  CheckCircle2,
+  XCircle,
 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
@@ -51,6 +53,15 @@ export interface HotelCardData {
 
   isVerified: boolean;
   isPublished: boolean;
+
+  // =====================================================
+  // ROOM AVAILABILITY
+  // =====================================================
+
+  totalRooms?: number;
+  bookedRooms?: number;
+  availableRooms?: number;
+  hasAvailableRooms?: boolean;
 }
 
 interface HotelCardProps {
@@ -60,7 +71,10 @@ interface HotelCardProps {
 function getAmenityIcon(amenity: string) {
   const value = amenity.toLowerCase();
 
-  if (value.includes("wifi") || value.includes("wi-fi")) {
+  if (
+    value.includes("wifi") ||
+    value.includes("wi-fi")
+  ) {
     return Wifi;
   }
 
@@ -117,14 +131,32 @@ export default function HotelCard({
 }: HotelCardProps) {
   const [favorite, setFavorite] = useState(false);
 
+  /*
+   * =====================================================
+   * IMAGE
+   * =====================================================
+   */
+
   const image =
     hotel.images?.length > 0
       ? hotel.images[0]
       : "/images/hotel-placeholder.jpg";
 
+  /*
+   * =====================================================
+   * PRICE
+   * =====================================================
+   */
+
   const formattedPrice = new Intl.NumberFormat(
     "en-LK"
   ).format(hotel.priceFrom);
+
+  /*
+   * =====================================================
+   * RATING
+   * =====================================================
+   */
 
   const rating =
     typeof hotel.rating === "number"
@@ -135,6 +167,26 @@ export default function HotelCard({
     typeof hotel.reviewCount === "number"
       ? hotel.reviewCount
       : 0;
+
+  /*
+   * =====================================================
+   * ROOM AVAILABILITY
+   * =====================================================
+   */
+
+  const availableRooms =
+    typeof hotel.availableRooms === "number"
+      ? hotel.availableRooms
+      : 0;
+
+  const hasRooms =
+    availableRooms > 0;
+
+  /*
+   * =====================================================
+   * RENDER
+   * =====================================================
+   */
 
   return (
     <motion.article
@@ -152,24 +204,37 @@ export default function HotelCard({
       transition={{
         duration: 0.3,
       }}
-      className="group overflow-hidden rounded-3xl border border-black/10 bg-white shadow-sm transition-shadow hover:shadow-2xl dark:border-white/10 dark:bg-[#111111]"
+      className={`group overflow-hidden rounded-3xl border bg-white shadow-sm transition-shadow hover:shadow-2xl dark:bg-[#111111] ${
+        hasRooms
+          ? "border-black/10 dark:border-white/10"
+          : "border-red-500/20 dark:border-red-500/20"
+      }`}
     >
-      {/* Image */}
+      {/* =================================================
+          IMAGE
+      ================================================= */}
+
       <div className="relative h-64 overflow-hidden">
         <img
           src={image}
           alt={hotel.name}
-          className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
+          className={`h-full w-full object-cover transition duration-700 group-hover:scale-105 ${
+            !hasRooms ? "grayscale-[15%]" : ""
+          }`}
           onError={(event) => {
             event.currentTarget.src =
               "/images/hotel-placeholder.jpg";
           }}
         />
 
-        {/* Gradient */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+        {/* Image gradient */}
 
-        {/* Favorite */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+
+        {/* =================================================
+            FAVORITE
+        ================================================= */}
+
         <button
           type="button"
           aria-label={
@@ -191,23 +256,63 @@ export default function HotelCard({
           />
         </button>
 
-        {/* Verified */}
+        {/* =================================================
+            VERIFIED
+        ================================================= */}
+
         {hotel.isVerified && (
-          <div className="absolute left-4 top-4 rounded-full border border-white/20 bg-black/40 px-3 py-1.5 text-xs font-medium text-white backdrop-blur-md">
-            ✓ BookingLK Verified
+          <div className="absolute left-4 top-4 flex items-center gap-1.5 rounded-full border border-white/20 bg-black/40 px-3 py-1.5 text-xs font-medium text-white backdrop-blur-md">
+            <CheckCircle2 className="h-3.5 w-3.5 text-[#F5D76E]" />
+
+            BookingLK Verified
           </div>
         )}
 
-        {/* Property type */}
+        {/* =================================================
+            PROPERTY TYPE
+        ================================================= */}
+
         <div className="absolute bottom-4 left-4 rounded-full bg-white/90 px-3 py-1.5 text-xs font-semibold text-black backdrop-blur">
-          {hotel.propertyType
-            .replaceAll("_", " ")}
+          {hotel.propertyType.replaceAll(
+            "_",
+            " "
+          )}
+        </div>
+
+        {/* =================================================
+            ROOM AVAILABILITY BADGE
+        ================================================= */}
+
+        <div className="absolute bottom-4 right-4">
+          {hasRooms ? (
+            <div className="flex items-center gap-1.5 rounded-full border border-emerald-400/30 bg-emerald-950/70 px-3 py-1.5 text-xs font-semibold text-emerald-300 shadow-lg backdrop-blur-md">
+              <CheckCircle2 className="h-3.5 w-3.5" />
+
+              {availableRooms}{" "}
+              {availableRooms === 1
+                ? "room"
+                : "rooms"}{" "}
+              available
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5 rounded-full border border-red-400/30 bg-red-950/70 px-3 py-1.5 text-xs font-semibold text-red-300 shadow-lg backdrop-blur-md">
+              <XCircle className="h-3.5 w-3.5" />
+
+              No rooms available
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Content */}
+      {/* =================================================
+          CONTENT
+      ================================================= */}
+
       <div className="p-5">
-        {/* Location */}
+        {/* =================================================
+            LOCATION
+        ================================================= */}
+
         <div className="mb-2 flex items-center gap-1.5 text-sm text-zinc-500 dark:text-zinc-400">
           <MapPin className="h-4 w-4" />
 
@@ -217,12 +322,18 @@ export default function HotelCard({
           </span>
         </div>
 
-        {/* Name */}
+        {/* =================================================
+            HOTEL NAME
+        ================================================= */}
+
         <h3 className="line-clamp-1 text-xl font-semibold tracking-tight text-zinc-950 dark:text-white">
           {hotel.name}
         </h3>
 
-        {/* Rating */}
+        {/* =================================================
+            RATING
+        ================================================= */}
+
         <div className="mt-3 flex items-center gap-2">
           <div className="flex items-center gap-1 rounded-full bg-[#D4AF37]/10 px-2.5 py-1 text-sm font-semibold text-[#B8860B] dark:text-[#F5D76E]">
             <Star className="h-4 w-4 fill-current" />
@@ -231,11 +342,17 @@ export default function HotelCard({
           </div>
 
           <span className="text-sm text-zinc-500 dark:text-zinc-400">
-            {reviewCount.toLocaleString()} reviews
+            {reviewCount.toLocaleString()}{" "}
+            {reviewCount === 1
+              ? "review"
+              : "reviews"}
           </span>
         </div>
 
-        {/* Amenities */}
+        {/* =================================================
+            AMENITIES
+        ================================================= */}
+
         {hotel.amenities?.length > 0 && (
           <div className="mt-4 flex items-center gap-3">
             {hotel.amenities
@@ -257,7 +374,38 @@ export default function HotelCard({
           </div>
         )}
 
-        {/* Bottom */}
+        {/* =================================================
+            ROOM STATUS
+        ================================================= */}
+
+        <div
+          className={`mt-4 flex items-center gap-2 rounded-xl px-3 py-2.5 ${
+            hasRooms
+              ? "bg-emerald-500/5 text-emerald-600 dark:text-emerald-400"
+              : "bg-red-500/5 text-red-500"
+          }`}
+        >
+          <BedDouble className="h-4 w-4 shrink-0" />
+
+          {hasRooms ? (
+            <span className="text-xs font-semibold">
+              {availableRooms}{" "}
+              {availableRooms === 1
+                ? "room is"
+                : "rooms are"}{" "}
+              currently available
+            </span>
+          ) : (
+            <span className="text-xs font-semibold">
+              No rooms currently available
+            </span>
+          )}
+        </div>
+
+        {/* =================================================
+            PRICE + VIEW
+        ================================================= */}
+
         <div className="mt-5 flex items-end justify-between gap-4 border-t border-zinc-200 pt-4 dark:border-white/10">
           <div>
             <p className="text-xs text-zinc-500 dark:text-zinc-400">
@@ -277,9 +425,15 @@ export default function HotelCard({
 
           <Link
             href={`/hotels/${hotel.slug}`}
-            className="group/button flex items-center gap-1.5 rounded-full bg-[#D4AF37] px-4 py-2.5 text-sm font-semibold text-black transition hover:bg-[#F5D76E]"
+            className={`group/button flex items-center gap-1.5 rounded-full px-4 py-2.5 text-sm font-semibold transition ${
+              hasRooms
+                ? "bg-[#D4AF37] text-black hover:bg-[#F5D76E]"
+                : "bg-zinc-200 text-zinc-500 hover:bg-zinc-300 dark:bg-white/10 dark:text-zinc-400 dark:hover:bg-white/15"
+            }`}
           >
-            View
+            {hasRooms
+              ? "View"
+              : "View hotel"}
 
             <ArrowUpRight className="h-4 w-4 transition-transform group-hover/button:translate-x-0.5 group-hover/button:-translate-y-0.5" />
           </Link>
@@ -288,4 +442,3 @@ export default function HotelCard({
     </motion.article>
   );
 }
-

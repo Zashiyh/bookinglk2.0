@@ -1,11 +1,10 @@
-
 import type { Metadata } from "next";
 import { Manrope, Inter } from "next/font/google";
 
 import "./globals.css";
 
 import { ThemeProvider } from "@/components/providers/theme-provider";
-import { Footer } from "@/components/footer/footer";
+import ConditionalFooter from "@/components/layout/ConditionalFooter";
 
 const manrope = Manrope({
   variable: "--font-manrope",
@@ -46,11 +45,10 @@ export default function RootLayout({
               {children}
             </main>
 
-            <Footer />
+            <ConditionalFooter />
           </div>
         </ThemeProvider>
       </body>
     </html>
   );
 }
-
