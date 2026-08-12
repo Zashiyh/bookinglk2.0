@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from "next/link";
@@ -114,9 +113,7 @@ function getInitials(user: UserData | null) {
   }
 
   if (user.email?.trim()) {
-    return user.email
-      .charAt(0)
-      .toUpperCase();
+    return user.email.charAt(0).toUpperCase();
   }
 
   return "U";
@@ -157,7 +154,7 @@ export function Navbar() {
     useRef<HTMLDivElement>(null);
 
   /*
-   * Get currently logged-in user
+   * Load logged-in user
    */
   useEffect(() => {
     async function loadUser() {
@@ -203,8 +200,7 @@ export function Navbar() {
   }, []);
 
   /*
-   * Close profile dropdown
-   * when clicking outside
+   * Close profile dropdown when clicking outside
    */
   useEffect(() => {
     function handleClickOutside(
@@ -266,10 +262,18 @@ export function Navbar() {
 
   return (
     <>
+      {/* =====================================================
+          DESKTOP / MAIN NAVBAR
+      ===================================================== */}
+
       <header className="fixed inset-x-0 top-0 z-50">
         <div className="mx-auto px-4 pt-4 sm:px-6 lg:px-8">
           <nav className="mx-auto flex h-16 max-w-7xl items-center justify-between rounded-2xl border border-[var(--border)] bg-white/80 px-4 shadow-lg shadow-black/5 backdrop-blur-xl dark:bg-[#090909]/80 sm:px-5">
-            {/* Logo */}
+
+            {/* =================================================
+                LOGO
+            ================================================= */}
+
             <Link
               href="/"
               className="group flex items-center gap-2"
@@ -291,7 +295,10 @@ export function Navbar() {
               </div>
             </Link>
 
-            {/* Desktop navigation */}
+            {/* =================================================
+                DESKTOP NAVIGATION
+            ================================================= */}
+
             <div className="hidden items-center gap-1 lg:flex">
               {navItems.map((item) => {
                 const Icon = item.icon;
@@ -313,8 +320,13 @@ export function Navbar() {
               })}
             </div>
 
-            {/* Right side */}
+            {/* =================================================
+                DESKTOP RIGHT SIDE
+            ================================================= */}
+
             <div className="hidden items-center gap-2 md:flex">
+
+              {/* Search */}
               <button
                 aria-label="Search"
                 className="flex h-10 w-10 items-center justify-center rounded-xl text-[var(--muted)] transition hover:bg-black/5 hover:text-[var(--gold-bright)] dark:hover:bg-white/5"
@@ -322,6 +334,7 @@ export function Navbar() {
                 <Search size={18} />
               </button>
 
+              {/* Favorites */}
               <Link
                 href="/favorites"
                 aria-label="Favorites"
@@ -330,6 +343,7 @@ export function Navbar() {
                 <Heart size={18} />
               </Link>
 
+              {/* Trips */}
               <Link
                 href="/dashboard/bookings"
                 className="hidden rounded-xl px-4 py-2 text-sm font-medium text-[var(--muted)] transition hover:text-[var(--foreground)] xl:block"
@@ -337,9 +351,13 @@ export function Navbar() {
                 Trips
               </Link>
 
+              {/* Theme */}
               <ThemeToggle />
 
-              {/* Logged in */}
+              {/* =================================================
+                  LOGGED USER
+              ================================================= */}
+
               {!loadingUser && user ? (
                 <div
                   ref={profileRef}
@@ -359,7 +377,7 @@ export function Navbar() {
                       {initials}
                     </div>
 
-                    {/* Name + greeting */}
+                    {/* Name */}
                     <div className="hidden text-left xl:block">
                       <p className="text-[10px] font-medium text-[var(--muted)]">
                         {greeting}
@@ -379,6 +397,10 @@ export function Navbar() {
                       }`}
                     />
                   </button>
+
+                  {/* =================================================
+                      PROFILE DROPDOWN
+                  ================================================= */}
 
                   <AnimatePresence>
                     {profileOpen && (
@@ -406,6 +428,7 @@ export function Navbar() {
                         {/* User header */}
                         <div className="border-b border-[var(--border)] p-4">
                           <div className="flex items-center gap-3">
+
                             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[var(--gold)] text-sm font-black text-black">
                               {initials}
                             </div>
@@ -419,6 +442,7 @@ export function Navbar() {
                                 {user.email || ""}
                               </p>
                             </div>
+
                           </div>
 
                           <div className="mt-3 flex items-center justify-between">
@@ -434,6 +458,7 @@ export function Navbar() {
 
                         {/* Menu */}
                         <div className="p-2">
+
                           <Link
                             href="/profile"
                             onClick={() =>
@@ -490,6 +515,7 @@ export function Navbar() {
                 </div>
               ) : (
                 <>
+                  {/* Sign In */}
                   <Link
                     href="/login"
                     className="flex items-center gap-2 rounded-xl border border-[var(--border)] px-4 py-2 text-sm font-semibold transition hover:border-[var(--gold)] hover:text-[var(--gold-bright)]"
@@ -498,6 +524,7 @@ export function Navbar() {
                     Sign In
                   </Link>
 
+                  {/* Register */}
                   <Link
                     href="/register"
                     className="rounded-xl bg-[var(--gold)] px-4 py-2 text-sm font-bold text-black transition hover:scale-[1.02] hover:bg-[var(--gold-bright)]"
@@ -508,8 +535,12 @@ export function Navbar() {
               )}
             </div>
 
-            {/* Mobile controls */}
+            {/* =================================================
+                MOBILE CONTROLS
+            ================================================= */}
+
             <div className="flex items-center gap-1 md:hidden">
+
               {!loadingUser && user && (
                 <div className="mr-1 flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--gold)] text-xs font-black text-black">
                   {initials}
@@ -519,7 +550,11 @@ export function Navbar() {
               <ThemeToggle />
 
               <button
-                aria-label="Open menu"
+                aria-label={
+                  mobileOpen
+                    ? "Close menu"
+                    : "Open menu"
+                }
                 onClick={() =>
                   setMobileOpen(
                     (value) => !value
@@ -538,7 +573,10 @@ export function Navbar() {
         </div>
       </header>
 
-      {/* Mobile menu */}
+      {/* =====================================================
+          MOBILE MENU
+      ===================================================== */}
+
       <AnimatePresence>
         {mobileOpen && (
           <motion.div
@@ -554,13 +592,24 @@ export function Navbar() {
               opacity: 0,
               y: -10,
             }}
+            transition={{
+              duration: 0.2,
+            }}
             className="fixed inset-x-4 top-24 z-40 md:hidden"
           >
-            <div className="glass rounded-2xl p-4 shadow-2xl">
-              {/* Logged user */}
+
+            {/* SOLID MOBILE MENU */}
+            <div className="rounded-2xl border border-[var(--border)] bg-white p-4 shadow-2xl dark:bg-[#111111]">
+
+              {/* =================================================
+                  LOGGED USER
+              ================================================= */}
+
               {user && (
-                <div className="mb-4 rounded-2xl border border-[var(--border)] bg-black/5 p-4 dark:bg-white/5">
+                <div className="mb-4 rounded-2xl border border-[var(--border)] bg-zinc-100 p-4 dark:bg-white/5">
+
                   <div className="flex items-center gap-3">
+
                     <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--gold)] text-sm font-black text-black">
                       {initials}
                     </div>
@@ -574,11 +623,18 @@ export function Navbar() {
                         {displayName}
                       </p>
                     </div>
+
                   </div>
+
                 </div>
               )}
 
+              {/* =================================================
+                  NAVIGATION LINKS
+              ================================================= */}
+
               <div className="space-y-1">
+
                 {navItems.map((item) => {
                   const Icon = item.icon;
 
@@ -589,27 +645,36 @@ export function Navbar() {
                       onClick={() =>
                         setMobileOpen(false)
                       }
-                      className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-[var(--muted)] transition hover:bg-black/5 hover:text-[var(--foreground)] dark:hover:bg-white/5"
+                      className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-[var(--muted)] transition hover:bg-zinc-100 hover:text-[var(--foreground)] dark:hover:bg-white/5"
                     >
                       <Icon size={18} />
+
                       {item.label}
                     </Link>
                   );
                 })}
+
               </div>
 
+              {/* Divider */}
               <div className="my-4 h-px bg-[var(--border)]" />
+
+              {/* =================================================
+                  LOGGED USER ACTIONS
+              ================================================= */}
 
               {user ? (
                 <div className="space-y-1">
+
                   <Link
                     href="/profile"
                     onClick={() =>
                       setMobileOpen(false)
                     }
-                    className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold"
+                    className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition hover:bg-zinc-100 dark:hover:bg-white/5"
                   >
                     <UserCircle size={18} />
+
                     View profile
                   </Link>
 
@@ -618,29 +683,37 @@ export function Navbar() {
                     onClick={() =>
                       setMobileOpen(false)
                     }
-                    className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold"
+                    className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition hover:bg-zinc-100 dark:hover:bg-white/5"
                   >
                     <Compass size={18} />
+
                     My bookings
                   </Link>
 
                   <button
                     type="button"
                     onClick={handleLogout}
-                    className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-red-500"
+                    className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-red-500 transition hover:bg-red-500/5"
                   >
                     <LogOut size={18} />
+
                     Logout
                   </button>
+
                 </div>
               ) : (
+                /* =================================================
+                   GUEST ACTIONS
+                ================================================= */
+
                 <div className="grid grid-cols-2 gap-2">
+
                   <Link
                     href="/login"
                     onClick={() =>
                       setMobileOpen(false)
                     }
-                    className="rounded-xl border border-[var(--border)] px-4 py-3 text-center text-sm font-semibold"
+                    className="rounded-xl border border-[var(--border)] px-4 py-3 text-center text-sm font-semibold transition hover:border-[var(--gold)] hover:text-[var(--gold-bright)]"
                   >
                     Sign In
                   </Link>
@@ -650,12 +723,14 @@ export function Navbar() {
                     onClick={() =>
                       setMobileOpen(false)
                     }
-                    className="rounded-xl bg-[var(--gold)] px-4 py-3 text-center text-sm font-bold text-black"
+                    className="rounded-xl bg-[var(--gold)] px-4 py-3 text-center text-sm font-bold text-black transition hover:bg-[var(--gold-bright)]"
                   >
                     Get Started
                   </Link>
+
                 </div>
               )}
+
             </div>
           </motion.div>
         )}
@@ -663,4 +738,3 @@ export function Navbar() {
     </>
   );
 }
-
