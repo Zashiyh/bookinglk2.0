@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+
 import {
   MapContainer,
   Marker,
@@ -8,8 +10,11 @@ import {
   TileLayer,
   useMap,
 } from "react-leaflet";
+
 import L from "leaflet";
+
 import "leaflet/dist/leaflet.css";
+
 import {
   Hotel as HotelIcon,
   MapPin,
@@ -22,6 +27,13 @@ import {
 
 export interface ExploreMapHotel {
   _id: string;
+
+  /*
+   * IMPORTANT:
+   * Hotel details route uses [slug], not [id].
+   */
+  slug: string;
+
   name: string;
 
   location?: {
@@ -36,7 +48,9 @@ export interface ExploreMapHotel {
   };
 
   priceFrom?: number;
+
   rating?: number;
+
   images?: string[];
 }
 
@@ -46,8 +60,12 @@ export interface ExploreMapHotel {
 
 interface ExploreMapProps {
   hotels: ExploreMapHotel[];
+
   selectedHotelId?: string | null;
-  onHotelSelect?: (hotel: ExploreMapHotel) => void;
+
+  onHotelSelect?: (
+    hotel: ExploreMapHotel
+  ) => void;
 }
 
 /* =========================================================
@@ -67,7 +85,9 @@ const createHotelIcon = (
   active: boolean
 ) => {
   return L.divIcon({
-    className: "bookinglk-hotel-marker",
+    className:
+      "bookinglk-hotel-marker",
+
     html: `
       <div
         style="
@@ -118,8 +138,11 @@ const createHotelIcon = (
         </svg>
       </div>
     `,
+
     iconSize: [42, 42],
+
     iconAnchor: [21, 42],
+
     popupAnchor: [0, -42],
   });
 };
@@ -146,8 +169,11 @@ function MapController({
       return;
     }
 
-    const longitude = coordinates[0];
-    const latitude = coordinates[1];
+    const longitude =
+      coordinates[0];
+
+    const latitude =
+      coordinates[1];
 
     if (
       !Number.isFinite(latitude) ||
@@ -157,13 +183,19 @@ function MapController({
     }
 
     map.flyTo(
-      [latitude, longitude],
+      [
+        latitude,
+        longitude,
+      ],
       13,
       {
         duration: 1,
       }
     );
-  }, [hotel, map]);
+  }, [
+    hotel,
+    map,
+  ]);
 
   return null;
 }
@@ -177,10 +209,14 @@ export default function ExploreMap({
   selectedHotelId = null,
   onHotelSelect,
 }: ExploreMapProps) {
-  const [activeHotelId, setActiveHotelId] =
-    useState<string | null>(
-      selectedHotelId
-    );
+  const router = useRouter();
+
+  const [
+    activeHotelId,
+    setActiveHotelId,
+  ] = useState<string | null>(
+    selectedHotelId
+  );
 
   /* =======================================================
      SYNC PARENT SELECTION
@@ -190,42 +226,67 @@ export default function ExploreMap({
     setActiveHotelId(
       selectedHotelId
     );
-  }, [selectedHotelId]);
+  }, [
+    selectedHotelId,
+  ]);
 
   /* =======================================================
      VALID HOTELS
   ======================================================= */
 
   const validHotels = useMemo(() => {
-    return hotels.filter((hotel) => {
-      const coordinates =
-        hotel.coordinates?.coordinates;
+    return hotels.filter(
+      (hotel) => {
+        /*
+         * A hotel must have:
+         * - _id
+         * - slug
+         * - valid coordinates
+         */
 
-      if (
-        !Array.isArray(coordinates) ||
-        coordinates.length !== 2
-      ) {
-        return false;
+        if (
+          !hotel._id ||
+          !hotel.slug
+        ) {
+          return false;
+        }
+
+        const coordinates =
+          hotel.coordinates
+            ?.coordinates;
+
+        if (
+          !Array.isArray(
+            coordinates
+          ) ||
+          coordinates.length !== 2
+        ) {
+          return false;
+        }
+
+        const longitude =
+          coordinates[0];
+
+        const latitude =
+          coordinates[1];
+
+        return (
+          typeof longitude ===
+            "number" &&
+          typeof latitude ===
+            "number" &&
+          Number.isFinite(
+            longitude
+          ) &&
+          Number.isFinite(
+            latitude
+          )
+        );
       }
-
-      const longitude =
-        coordinates[0];
-
-      const latitude =
-        coordinates[1];
-
-      return (
-        typeof longitude ===
-          "number" &&
-        typeof latitude ===
-          "number" &&
-        Number.isFinite(
-          longitude
-        ) &&
-        Number.isFinite(latitude)
-      );
-    });
-  }, [hotels]);
+    );
+  }, [
+    hotels,
+  ]);
 
   /* =======================================================
      ACTIVE HOTEL
@@ -249,7 +310,63 @@ export default function ExploreMap({
       hotel._id
     );
 
-    onHotelSelect?.(hotel);
+    onHotelSelect?.(
+      hotel
+    );
+  };
+
+  /* =======================================================
+     VIEW HOTEL
+  ======================================================= */
+
+  const handleViewHotel = (
+    hotel: ExploreMapHotel
+  ) => {
+    /*
+     * IMPORTANT:
+     *
+     * Details page:
+     *
+     * /hotels/[slug]
+     *
+     * Therefore DO NOT use:
+     *
+     * /hotels/${hotel._id}
+     *
+     * Use:
+     *
+     * /hotels/${hotel.slug}
+     */
+
+    const slug =
+      hotel.slug?.trim();
+
+    if (!slug) {
+      console.error(
+        "Hotel slug is missing:",
+        hotel
+      );
+
+      return;
+    }
+
+    /*
+     * Keep parent selection synced
+     */
+
+    onHotelSelect?.(
+      hotel
+    );
+
+    /*
+     * Navigate using slug.
+     */
+
+    router.push(
+      `/hotels/${encodeURIComponent(
+        slug
+      )}`
+    );
   };
 
   /* =======================================================
@@ -257,14 +374,18 @@ export default function ExploreMap({
   ======================================================= */
 
   const clearSelection = () => {
-    setActiveHotelId(null);
+    setActiveHotelId(
+      null
+    );
   };
 
   /* =======================================================
      NO HOTELS
   ======================================================= */
 
-  if (validHotels.length === 0) {
+  if (
+    validHotels.length === 0
+  ) {
     return (
       <div className="relative flex h-[500px] items-center justify-center overflow-hidden rounded-[2rem] border border-black/10 bg-zinc-100 dark:border-white/10 dark:bg-[#111]">
         <div className="text-center">
@@ -277,9 +398,9 @@ export default function ExploreMap({
           </h3>
 
           <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-zinc-500 dark:text-zinc-400">
-            The current hotels do not
-            have valid latitude and
-            longitude coordinates.
+            The current hotels do
+            not have valid hotel
+            slugs and coordinates.
           </p>
         </div>
       </div>
@@ -293,7 +414,9 @@ export default function ExploreMap({
   return (
     <div className="relative overflow-hidden rounded-[2rem] border border-black/10 shadow-xl dark:border-white/10">
       <MapContainer
-        center={SRI_LANKA_CENTER}
+        center={
+          SRI_LANKA_CENTER
+        }
         zoom={8}
         minZoom={7}
         maxZoom={18}
@@ -314,7 +437,9 @@ export default function ExploreMap({
         ================================================= */}
 
         <MapController
-          hotel={activeHotel}
+          hotel={
+            activeHotel
+          }
         />
 
         {/* =================================================
@@ -322,7 +447,9 @@ export default function ExploreMap({
         ================================================= */}
 
         {validHotels.map(
-          (hotel) => {
+          (
+            hotel
+          ) => {
             const coordinates =
               hotel.coordinates
                 ?.coordinates;
@@ -347,7 +474,9 @@ export default function ExploreMap({
 
             return (
               <Marker
-                key={hotel._id}
+                key={
+                  hotel._id
+                }
                 position={[
                   latitude,
                   longitude,
@@ -369,7 +498,8 @@ export default function ExploreMap({
                     {hotel.images?.[0] && (
                       <img
                         src={
-                          hotel.images[0]
+                          hotel
+                            .images[0]
                         }
                         alt={
                           hotel.name
@@ -381,7 +511,9 @@ export default function ExploreMap({
                     {/* NAME */}
 
                     <h3 className="text-sm font-black text-zinc-900">
-                      {hotel.name}
+                      {
+                        hotel.name
+                      }
                     </h3>
 
                     {/* LOCATION */}
@@ -390,17 +522,19 @@ export default function ExploreMap({
                       <MapPin className="h-3 w-3" />
 
                       <span>
-                        {hotel
-                          .location
-                          ?.city ||
+                        {
+                          hotel
+                            .location
+                            ?.city ||
                           hotel
                             .location
                             ?.district ||
-                          "Sri Lanka"}
+                          "Sri Lanka"
+                        }
                       </span>
                     </div>
 
-                    {/* RATING */}
+                    {/* RATING + PRICE */}
 
                     <div className="mt-3 flex items-center justify-between">
                       <div className="flex items-center gap-1 rounded-lg bg-[#D4AF37]/15 px-2 py-1 text-xs font-black text-[#8a6c00]">
@@ -409,10 +543,10 @@ export default function ExploreMap({
                         {(
                           hotel.rating ??
                           0
-                        ).toFixed(1)}
+                        ).toFixed(
+                          1
+                        )}
                       </div>
-
-                      {/* PRICE */}
 
                       <div className="text-right">
                         <p className="text-[10px] text-zinc-400">
@@ -431,16 +565,16 @@ export default function ExploreMap({
                       </div>
                     </div>
 
-                    {/* BUTTON */}
+                    {/* VIEW HOTEL */}
 
                     <button
                       type="button"
                       onClick={() =>
-                        onHotelSelect?.(
+                        handleViewHotel(
                           hotel
                         )
                       }
-                      className="mt-3 w-full rounded-xl bg-[#D4AF37] px-3 py-2 text-xs font-black text-black transition hover:bg-[#F5D76E]"
+                      className="mt-3 w-full rounded-xl bg-[#D4AF37] px-3 py-2 text-xs font-black text-black transition hover:bg-[#F5D76E] active:scale-[0.98]"
                     >
                       View hotel
                     </button>
@@ -458,7 +592,8 @@ export default function ExploreMap({
 
       <div className="pointer-events-none absolute left-5 top-5 z-[1000] rounded-full border border-black/10 bg-white/95 px-4 py-2 text-xs font-black text-zinc-800 shadow-xl backdrop-blur-xl dark:border-white/10 dark:bg-[#111]/95 dark:text-white">
         {validHotels.length}{" "}
-        {validHotels.length === 1
+        {validHotels.length ===
+        1
           ? "stay"
           : "stays"}{" "}
         on map
@@ -486,6 +621,8 @@ export default function ExploreMap({
 
       {activeHotel && (
         <div className="absolute bottom-5 left-5 z-[1000] w-[300px] max-w-[calc(100%-40px)] overflow-hidden rounded-2xl border border-white/20 bg-white/95 shadow-2xl backdrop-blur-xl dark:border-white/10 dark:bg-[#111]/95">
+          {/* IMAGE */}
+
           {activeHotel.images?.[0] && (
             <img
               src={
@@ -511,15 +648,19 @@ export default function ExploreMap({
                 <p className="mt-1 flex items-center gap-1 text-xs text-zinc-500 dark:text-zinc-400">
                   <MapPin className="h-3 w-3" />
 
-                  {activeHotel
-                    .location
-                    ?.city ||
+                  {
+                    activeHotel
+                      .location
+                      ?.city ||
                     activeHotel
                       .location
                       ?.district ||
-                    "Sri Lanka"}
+                    "Sri Lanka"
+                  }
                 </p>
               </div>
+
+              {/* RATING */}
 
               <div className="flex shrink-0 items-center gap-1 rounded-lg bg-[#D4AF37]/15 px-2 py-1 text-xs font-black text-[#9a7800] dark:text-[#F5D76E]">
                 <Star className="h-3 w-3 fill-current" />
@@ -527,9 +668,13 @@ export default function ExploreMap({
                 {(
                   activeHotel.rating ??
                   0
-                ).toFixed(1)}
+                ).toFixed(
+                  1
+                )}
               </div>
             </div>
+
+            {/* PRICE + BUTTON */}
 
             <div className="mt-4 flex items-end justify-between gap-3">
               <div>
@@ -555,11 +700,11 @@ export default function ExploreMap({
               <button
                 type="button"
                 onClick={() =>
-                  onHotelSelect?.(
+                  handleViewHotel(
                     activeHotel
                   )
                 }
-                className="inline-flex items-center gap-1 rounded-full bg-[#D4AF37] px-4 py-2 text-[10px] font-black text-black transition hover:bg-[#F5D76E]"
+                className="inline-flex items-center gap-1 rounded-full bg-[#D4AF37] px-4 py-2 text-[10px] font-black text-black transition hover:bg-[#F5D76E] active:scale-[0.98]"
               >
                 <HotelIcon className="h-3 w-3" />
 

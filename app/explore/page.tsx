@@ -55,7 +55,14 @@ type SortOption =
 
 type Hotel = HotelCardData & {
   _id: string;
+
   name: string;
+
+  /*
+   * IMPORTANT
+   * Hotel details page uses slug.
+   */
+  slug: string;
 
   description?: string;
 
@@ -73,8 +80,11 @@ type Hotel = HotelCardData & {
   };
 
   priceFrom?: number;
+
   rating?: number;
+
   images?: string[];
+
   thumbnail?: string;
 };
 
@@ -179,7 +189,10 @@ export default function ExplorePage() {
         selectedCity &&
         selectedCity !== "All"
       ) {
-        params.set("city", selectedCity);
+        params.set(
+          "city",
+          selectedCity
+        );
       }
 
       /* PROPERTY TYPE */
@@ -220,9 +233,15 @@ export default function ExplorePage() {
 
       /* PAGINATION */
 
-      params.set("page", page.toString());
+      params.set(
+        "page",
+        page.toString()
+      );
 
-      params.set("limit", "12");
+      params.set(
+        "limit",
+        "12"
+      );
 
       const response = await fetch(
         `/api/hotels?${params.toString()}`,
@@ -238,7 +257,8 @@ export default function ExplorePage() {
         );
       }
 
-      const result = await response.json();
+      const result =
+        await response.json();
 
       if (!result.success) {
         throw new Error(
@@ -247,17 +267,32 @@ export default function ExplorePage() {
         );
       }
 
-      const apiHotels = Array.isArray(
-        result.data
-      )
-        ? result.data
-        : [];
+      const apiHotels =
+        Array.isArray(result.data)
+          ? result.data
+          : [];
 
-      setHotels(apiHotels as Hotel[]);
+      /*
+       * Only keep hotels that have
+       * a valid slug.
+       */
+      const validHotels =
+        apiHotels.filter(
+          (hotel: Hotel) =>
+            Boolean(
+              hotel?._id &&
+              hotel?.slug
+            )
+        );
+
+      setHotels(
+        validHotels as Hotel[]
+      );
 
       setTotalPages(
         Number(
-          result.pagination?.totalPages
+          result.pagination
+            ?.totalPages
         ) || 1
       );
     } catch (err) {
@@ -301,16 +336,24 @@ export default function ExplorePage() {
     setLocation(value);
 
     const normalized =
-      value.trim().toLowerCase();
+      value
+        .trim()
+        .toLowerCase();
 
-    const matchedCity = cities.find(
-      (city) =>
-        city.toLowerCase() === normalized
-    );
+    const matchedCity =
+      cities.find(
+        (city) =>
+          city.toLowerCase() ===
+          normalized
+      );
 
     if (matchedCity) {
-      setSelectedCity(matchedCity);
+      setSelectedCity(
+        matchedCity
+      );
+
       setPage(1);
+
       setSelectedHotelId(null);
     }
   };
@@ -325,10 +368,13 @@ export default function ExplorePage() {
     setSelectedCity(city);
 
     setLocation(
-      city === "All" ? "" : city
+      city === "All"
+        ? ""
+        : city
     );
 
     setPage(1);
+
     setSelectedHotelId(null);
   };
 
@@ -350,95 +396,124 @@ export default function ExplorePage() {
      SEARCH + CLIENT FILTER
   ======================================================= */
 
-  const filteredHotels = useMemo(() => {
-    const query = search
-      .trim()
-      .toLowerCase();
+  const filteredHotels =
+    useMemo(() => {
+      const query =
+        search
+          .trim()
+          .toLowerCase();
 
-    const locationQuery = location
-      .trim()
-      .toLowerCase();
+      const locationQuery =
+        location
+          .trim()
+          .toLowerCase();
 
-    return hotels.filter((hotel) => {
-      /* SEARCH */
+      return hotels.filter(
+        (hotel) => {
+          /* SEARCH */
 
-      if (query) {
-        const name =
-          hotel.name?.toLowerCase() || "";
+          if (query) {
+            const name =
+              hotel.name
+                ?.toLowerCase() ||
+              "";
 
-        const city =
-          hotel.location?.city?.toLowerCase() ||
-          "";
+            const city =
+              hotel.location
+                ?.city
+                ?.toLowerCase() ||
+              "";
 
-        const district =
-          hotel.location?.district?.toLowerCase() ||
-          "";
+            const district =
+              hotel.location
+                ?.district
+                ?.toLowerCase() ||
+              "";
 
-        const description =
-          hotel.description?.toLowerCase() ||
-          "";
+            const description =
+              hotel.description
+                ?.toLowerCase() ||
+              "";
 
-        const property =
-          hotel.propertyType?.toLowerCase() ||
-          "";
+            const property =
+              hotel.propertyType
+                ?.toLowerCase() ||
+              "";
 
-        const matchesSearch =
-          name.includes(query) ||
-          city.includes(query) ||
-          district.includes(query) ||
-          description.includes(query) ||
-          property.includes(query);
+            const matchesSearch =
+              name.includes(query) ||
+              city.includes(query) ||
+              district.includes(query) ||
+              description.includes(query) ||
+              property.includes(query);
 
-        if (!matchesSearch) {
-          return false;
+            if (!matchesSearch) {
+              return false;
+            }
+          }
+
+          /* LOCATION */
+
+          if (
+            locationQuery &&
+            locationQuery !==
+              selectedCity.toLowerCase()
+          ) {
+            const city =
+              hotel.location
+                ?.city
+                ?.toLowerCase() ||
+              "";
+
+            const district =
+              hotel.location
+                ?.district
+                ?.toLowerCase() ||
+              "";
+
+            const address =
+              hotel.location
+                ?.address
+                ?.toLowerCase() ||
+              "";
+
+            const matchesLocation =
+              city.includes(
+                locationQuery
+              ) ||
+              district.includes(
+                locationQuery
+              ) ||
+              address.includes(
+                locationQuery
+              );
+
+            if (
+              !matchesLocation
+            ) {
+              return false;
+            }
+          }
+
+          return true;
         }
-      }
-
-      /* LOCATION */
-
-      if (
-        locationQuery &&
-        locationQuery !==
-          selectedCity.toLowerCase()
-      ) {
-        const city =
-          hotel.location?.city?.toLowerCase() ||
-          "";
-
-        const district =
-          hotel.location?.district?.toLowerCase() ||
-          "";
-
-        const address =
-          hotel.location?.address?.toLowerCase() ||
-          "";
-
-        const matchesLocation =
-          city.includes(locationQuery) ||
-          district.includes(locationQuery) ||
-          address.includes(locationQuery);
-
-        if (!matchesLocation) {
-          return false;
-        }
-      }
-
-      return true;
-    });
-  }, [
-    hotels,
-    search,
-    location,
-    selectedCity,
-  ]);
+      );
+    }, [
+      hotels,
+      search,
+      location,
+      selectedCity,
+    ]);
 
   /* =======================================================
      SORT
   ======================================================= */
 
-  const sortedHotels = useMemo(() => {
-    return [...filteredHotels].sort(
-      (a, b) => {
+  const sortedHotels =
+    useMemo(() => {
+      return [
+        ...filteredHotels,
+      ].sort((a, b) => {
         switch (sort) {
           case "price-low":
             return (
@@ -465,59 +540,94 @@ export default function ExplorePage() {
               (a.rating || 0)
             );
         }
-      }
-    );
-  }, [filteredHotels, sort]);
+      });
+    }, [
+      filteredHotels,
+      sort,
+    ]);
 
   /* =======================================================
      MAP HOTELS
-  ======================================================= */
+========================================================= */
 
-  const mapHotels = useMemo(() => {
-    return sortedHotels
-      .filter((hotel) => {
-        const coordinates =
-          hotel.coordinates?.coordinates;
+  const mapHotels =
+    useMemo(() => {
+      return sortedHotels
+        .filter((hotel) => {
+          const coordinates =
+            hotel.coordinates
+              ?.coordinates;
 
-        if (
-          !Array.isArray(coordinates) ||
-          coordinates.length !== 2
-        ) {
-          return false;
-        }
+          if (
+            !Array.isArray(
+              coordinates
+            ) ||
+            coordinates.length !==
+              2
+          ) {
+            return false;
+          }
 
-        const longitude = coordinates[0];
+          const longitude =
+            coordinates[0];
 
-        const latitude = coordinates[1];
+          const latitude =
+            coordinates[1];
 
-        return (
-          typeof longitude === "number" &&
-          typeof latitude === "number" &&
-          Number.isFinite(longitude) &&
-          Number.isFinite(latitude)
-        );
-      })
-      .map((hotel) => ({
-        _id: hotel._id,
-        name: hotel.name,
+          return (
+            typeof longitude ===
+              "number" &&
+            typeof latitude ===
+              "number" &&
+            Number.isFinite(
+              longitude
+            ) &&
+            Number.isFinite(
+              latitude
+            ) &&
+            Boolean(hotel.slug)
+          );
+        })
+        .map((hotel) => ({
+          _id: hotel._id,
 
-        location: {
-          city: hotel.location?.city,
-          district:
-            hotel.location?.district,
-          address:
-            hotel.location?.address,
-        },
+          /*
+           * IMPORTANT
+           * Pass slug to map.
+           */
+          slug: hotel.slug,
 
-        coordinates: hotel.coordinates,
+          name: hotel.name,
 
-        priceFrom: hotel.priceFrom,
+          location: {
+            city:
+              hotel.location
+                ?.city,
 
-        rating: hotel.rating,
+            district:
+              hotel.location
+                ?.district,
 
-        images: hotel.images,
-      }));
-  }, [sortedHotels]);
+            address:
+              hotel.location
+                ?.address,
+          },
+
+          coordinates:
+            hotel.coordinates,
+
+          priceFrom:
+            hotel.priceFrom,
+
+          rating:
+            hotel.rating,
+
+          images:
+            hotel.images,
+        }));
+    }, [
+      sortedHotels,
+    ]);
 
   /* =======================================================
      PROPERTY LABEL
@@ -526,10 +636,15 @@ export default function ExplorePage() {
   const selectedPropertyLabel =
     propertyType
       ? propertyType
-          .replace("_", " ")
+          .replace(
+            "_",
+            " "
+          )
           .toLowerCase()
-          .replace(/\b\w/g, (char) =>
-            char.toUpperCase()
+          .replace(
+            /\b\w/g,
+            (char) =>
+              char.toUpperCase()
           )
       : "All";
 
@@ -554,7 +669,9 @@ export default function ExplorePage() {
 
     setPage(1);
 
-    setSelectedHotelId(null);
+    setSelectedHotelId(
+      null
+    );
   };
 
   /* =======================================================
@@ -564,10 +681,13 @@ export default function ExplorePage() {
   const handleMapHotelSelect = (
     hotel: {
       _id: string;
+      slug: string;
       name: string;
     }
   ) => {
-    setSelectedHotelId(hotel._id);
+    setSelectedHotelId(
+      hotel._id
+    );
   };
 
   /* =======================================================
@@ -588,13 +708,26 @@ export default function ExplorePage() {
 
           <motion.div
             animate={{
-              x: [0, 70, 0],
-              y: [0, -30, 0],
-              scale: [1, 1.15, 1],
+              x: [
+                0,
+                70,
+                0,
+              ],
+              y: [
+                0,
+                -30,
+                0,
+              ],
+              scale: [
+                1,
+                1.15,
+                1,
+              ],
             }}
             transition={{
               duration: 12,
-              repeat: Infinity,
+              repeat:
+                Infinity,
               ease: "easeInOut",
             }}
             className="absolute left-[5%] top-[10%] h-72 w-72 rounded-full bg-[#D4AF37]/15 blur-[120px]"
@@ -602,13 +735,26 @@ export default function ExplorePage() {
 
           <motion.div
             animate={{
-              x: [0, -60, 0],
-              y: [0, 40, 0],
-              scale: [1, 1.1, 1],
+              x: [
+                0,
+                -60,
+                0,
+              ],
+              y: [
+                0,
+                40,
+                0,
+              ],
+              scale: [
+                1,
+                1.1,
+                1,
+              ],
             }}
             transition={{
               duration: 15,
-              repeat: Infinity,
+              repeat:
+                Infinity,
               ease: "easeInOut",
             }}
             className="absolute right-[5%] top-[20%] h-96 w-96 rounded-full bg-white/[0.04] blur-[130px]"
@@ -616,8 +762,6 @@ export default function ExplorePage() {
         </div>
 
         <div className="relative z-10 mx-auto max-w-7xl px-5 pb-16 pt-32 sm:px-8 lg:px-10 lg:pb-20">
-          {/* BACK */}
-
           <motion.div
             initial={{
               opacity: 0,
@@ -643,8 +787,6 @@ export default function ExplorePage() {
               Back
             </button>
           </motion.div>
-
-          {/* HEADING */}
 
           <motion.div
             initial={{
@@ -672,13 +814,12 @@ export default function ExplorePage() {
             </h1>
 
             <p className="mt-5 max-w-2xl text-sm leading-7 text-white/50 sm:text-base">
-              Discover hotels, resorts,
-              villas and unique stays
+              Discover hotels,
+              resorts, villas
+              and unique stays
               across Sri Lanka.
             </p>
           </motion.div>
-
-          {/* SEARCH */}
 
           <motion.div
             initial={{
@@ -696,12 +837,18 @@ export default function ExplorePage() {
             className="mt-10"
           >
             <ExploreSearch
-              location={location}
+              location={
+                location
+              }
               setLocation={
                 handleLocationChange
               }
-              search={search}
-              setSearch={setSearch}
+              search={
+                search
+              }
+              setSearch={
+                setSearch
+              }
             />
           </motion.div>
         </div>
@@ -714,41 +861,53 @@ export default function ExplorePage() {
       <section className="mx-auto max-w-7xl px-5 py-10 sm:px-8 lg:px-10 lg:py-14">
         <div className="flex flex-col gap-8 lg:flex-row">
 
-          {/* =================================================
-              DESKTOP SIDEBAR
-          ================================================== */}
+          {/* DESKTOP FILTER */}
 
           <aside className="hidden w-72 shrink-0 lg:block">
             <div className="sticky top-28">
               <ExploreFilters
-                selectedCity={selectedCity}
+                selectedCity={
+                  selectedCity
+                }
                 setSelectedCity={
                   handleCityChange
                 }
-                minPrice={minPrice}
-                maxPrice={maxPrice}
-                rating={rating}
-                propertyType={propertyType}
-                setMinPrice={setMinPrice}
-                setMaxPrice={setMaxPrice}
-                setRating={setRating}
+                minPrice={
+                  minPrice
+                }
+                maxPrice={
+                  maxPrice
+                }
+                rating={
+                  rating
+                }
+                propertyType={
+                  propertyType
+                }
+                setMinPrice={
+                  setMinPrice
+                }
+                setMaxPrice={
+                  setMaxPrice
+                }
+                setRating={
+                  setRating
+                }
                 setPropertyType={
                   handlePropertyTypeChange
                 }
-                onClear={clearFilters}
+                onClear={
+                  clearFilters
+                }
               />
             </div>
           </aside>
 
-          {/* =================================================
-              MAIN
-          ================================================== */}
+          {/* MAIN */}
 
           <div className="min-w-0 flex-1">
 
-            {/* =================================================
-                TOOLBAR
-            ================================================== */}
+            {/* TOOLBAR */}
 
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
@@ -762,17 +921,22 @@ export default function ExplorePage() {
                   <MapPin className="h-3.5 w-3.5" />
 
                   <span>
-                    {selectedCity === "All"
+                    {selectedCity ===
+                    "All"
                       ? "Sri Lanka"
                       : selectedCity}
                   </span>
 
                   {propertyType && (
                     <>
-                      <span>•</span>
+                      <span>
+                        •
+                      </span>
 
                       <span>
-                        {selectedPropertyLabel}
+                        {
+                          selectedPropertyLabel
+                        }
                       </span>
                     </>
                   )}
@@ -780,14 +944,12 @@ export default function ExplorePage() {
               </div>
 
               <div className="flex items-center gap-2">
-
-                {/* MOBILE FILTER */}
-
                 <button
                   type="button"
                   onClick={() =>
                     setShowFilters(
-                      (value) => !value
+                      (value) =>
+                        !value
                     )
                   }
                   className="inline-flex items-center gap-2 rounded-xl border border-black/10 px-3 py-2.5 text-xs font-bold lg:hidden dark:border-white/10"
@@ -798,7 +960,9 @@ export default function ExplorePage() {
 
                 <SortDropdown
                   value={sort}
-                  onChange={(value) =>
+                  onChange={(
+                    value
+                  ) =>
                     setSort(
                       value as SortOption
                     )
@@ -807,9 +971,7 @@ export default function ExplorePage() {
               </div>
             </div>
 
-            {/* =================================================
-                MOBILE FILTER
-            ================================================== */}
+            {/* MOBILE FILTER */}
 
             {showFilters && (
               <motion.div
@@ -824,33 +986,48 @@ export default function ExplorePage() {
                 className="mt-5 lg:hidden"
               >
                 <div className="rounded-3xl border border-black/5 bg-zinc-50 p-4 dark:border-white/5 dark:bg-[#0d0d0d]">
-
                   <ExploreFilters
-                    selectedCity={selectedCity}
+                    selectedCity={
+                      selectedCity
+                    }
                     setSelectedCity={
                       handleCityChange
                     }
-                    minPrice={minPrice}
-                    maxPrice={maxPrice}
-                    rating={rating}
-                    propertyType={propertyType}
+                    minPrice={
+                      minPrice
+                    }
+                    maxPrice={
+                      maxPrice
+                    }
+                    rating={
+                      rating
+                    }
+                    propertyType={
+                      propertyType
+                    }
                     setMinPrice={
                       setMinPrice
                     }
                     setMaxPrice={
                       setMaxPrice
                     }
-                    setRating={setRating}
+                    setRating={
+                      setRating
+                    }
                     setPropertyType={
                       handlePropertyTypeChange
                     }
-                    onClear={clearFilters}
+                    onClear={
+                      clearFilters
+                    }
                   />
 
                   <button
                     type="button"
                     onClick={() =>
-                      setShowFilters(false)
+                      setShowFilters(
+                        false
+                      )
                     }
                     className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-[#D4AF37] px-4 py-3 text-xs font-black text-black transition hover:bg-[#F5D76E]"
                   >
@@ -861,9 +1038,7 @@ export default function ExplorePage() {
               </motion.div>
             )}
 
-            {/* =================================================
-                MAP
-            ================================================== */}
+            {/* MAP */}
 
             <div className="mt-8">
               <div className="mb-4 flex items-end justify-between">
@@ -873,20 +1048,27 @@ export default function ExplorePage() {
                   </p>
 
                   <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-                    Find stays by location
-                    across Sri Lanka.
+                    Find stays by
+                    location across
+                    Sri Lanka.
                   </p>
                 </div>
 
                 <div className="rounded-full bg-[#D4AF37]/10 px-3 py-1.5 text-[10px] font-black text-[#9a7800] dark:text-[#F5D76E]">
-                  {mapHotels.length} mapped
+                  {
+                    mapHotels.length
+                  }{" "}
+                  mapped
                 </div>
               </div>
 
               {!loading &&
-              mapHotels.length > 0 ? (
+              mapHotels.length >
+                0 ? (
                 <ExploreMap
-                  hotels={mapHotels}
+                  hotels={
+                    mapHotels
+                  }
                   selectedHotelId={
                     selectedHotelId
                   }
@@ -906,9 +1088,11 @@ export default function ExplorePage() {
                     </p>
 
                     <p className="mt-1 text-xs leading-5 text-zinc-500">
-                      Hotels need valid
-                      latitude and longitude
-                      values to appear on the
+                      Hotels need
+                      valid latitude
+                      and longitude
+                      values to
+                      appear on the
                       map.
                     </p>
                   </div>
@@ -916,19 +1100,21 @@ export default function ExplorePage() {
               )}
             </div>
 
-            {/* =================================================
-                HOTEL GRID
-            ================================================== */}
+            {/* HOTEL GRID */}
 
             {loading ? (
               <div className="mt-10 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
                 {Array.from({
                   length: 6,
-                }).map((_, index) => (
-                  <HotelSkeleton
-                    key={index}
-                  />
-                ))}
+                }).map(
+                  (_, index) => (
+                    <HotelSkeleton
+                      key={
+                        index
+                      }
+                    />
+                  )
+                )}
               </div>
             ) : error ? (
               <div className="mt-10 rounded-3xl border border-red-500/20 bg-red-500/5 p-10 text-center">
@@ -938,22 +1124,30 @@ export default function ExplorePage() {
 
                 <button
                   type="button"
-                  onClick={fetchHotels}
+                  onClick={
+                    fetchHotels
+                  }
                   className="mt-5 rounded-xl bg-[#D4AF37] px-5 py-2.5 text-xs font-bold text-black"
                 >
                   Try again
                 </button>
               </div>
-            ) : sortedHotels.length > 0 ? (
+            ) : sortedHotels.length >
+              0 ? (
               <motion.div
                 layout
                 className="mt-10 grid gap-5 sm:grid-cols-2 xl:grid-cols-3"
               >
                 {sortedHotels.map(
-                  (hotel, index) => (
+                  (
+                    hotel,
+                    index
+                  ) => (
                     <motion.div
                       layout
-                      key={hotel._id}
+                      key={
+                        hotel._id
+                      }
                       initial={{
                         opacity: 0,
                         y: 25,
@@ -965,11 +1159,14 @@ export default function ExplorePage() {
                       transition={{
                         duration: 0.45,
                         delay:
-                          index * 0.05,
+                          index *
+                          0.05,
                       }}
                     >
                       <HotelCard
-                        hotel={hotel}
+                        hotel={
+                          hotel
+                        }
                       />
                     </motion.div>
                   )
@@ -977,30 +1174,39 @@ export default function ExplorePage() {
               </motion.div>
             ) : (
               <EmptyState
-                city={selectedCity}
+                city={
+                  selectedCity
+                }
                 propertyType={
                   selectedPropertyLabel
                 }
-                onClear={clearFilters}
+                onClear={
+                  clearFilters
+                }
               />
             )}
 
-            {/* =================================================
-                PAGINATION
-            ================================================== */}
+            {/* PAGINATION */}
 
             {!loading &&
               !error &&
-              sortedHotels.length > 0 &&
-              totalPages > 1 && (
+              sortedHotels.length >
+                0 &&
+              totalPages >
+                1 && (
                 <div className="mt-10 flex items-center justify-center gap-2">
                   <button
                     type="button"
-                    disabled={page <= 1}
+                    disabled={
+                      page <= 1
+                    }
                     onClick={() => {
                       setPage(
-                        (current) =>
-                          current - 1
+                        (
+                          current
+                        ) =>
+                          current -
+                          1
                       );
 
                       setSelectedHotelId(
@@ -1013,18 +1219,26 @@ export default function ExplorePage() {
                   </button>
 
                   <div className="rounded-xl bg-[#D4AF37] px-4 py-2.5 text-xs font-black text-black">
-                    {page} / {totalPages}
+                    {page}{" "}
+                    /{" "}
+                    {
+                      totalPages
+                    }
                   </div>
 
                   <button
                     type="button"
                     disabled={
-                      page >= totalPages
+                      page >=
+                      totalPages
                     }
                     onClick={() => {
                       setPage(
-                        (current) =>
-                          current + 1
+                        (
+                          current
+                        ) =>
+                          current +
+                          1
                       );
 
                       setSelectedHotelId(
@@ -1090,14 +1304,16 @@ function EmptyState({
         {city !== "All"
           ? ` in ${city}`
           : ""}
-        {propertyType !== "All"
+        {propertyType !==
+        "All"
           ? ` for ${propertyType}`
           : ""}
       </h3>
 
       <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-zinc-500 dark:text-zinc-400">
-        We couldn't find any published
-        hotels matching your current
+        We couldn't find any
+        published hotels
+        matching your current
         filters.
       </p>
 
