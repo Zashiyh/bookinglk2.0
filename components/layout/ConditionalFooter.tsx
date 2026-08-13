@@ -6,7 +6,7 @@ import { Footer } from "@/components/footer/footer";
 export default function ConditionalFooter() {
   const pathname = usePathname();
 
-  // Admin pages වල Footer නැහැ
+  // footer blocked
   if (pathname.startsWith("/admin")) {
     return null;
   }

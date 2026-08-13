@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { Navbar } from "@/components/navbar/navbar";
 import {
   ArrowRight,
   ArrowUpRight,
@@ -15,7 +16,9 @@ import {
   Star,
   Building2,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
+
+import CountUp from "@/components/ui/CountUp";
 
 type Category =
   | "All"
@@ -59,7 +62,7 @@ const destinations: Destination[] = [
     description:
       "Misty mountains, tea plantations, waterfalls and one of the world's most beautiful train journeys.",
     image:
-      "https://images.unsplash.com/photo-1546708973-b339540b5162?auto=format&fit=crop&w=1400&q=85",
+      "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSchq6y9z3UBf6psVytjq-JuS6r1csKAtQv4FrwA6eu57D06reCRodbGkk&s=10",
     hotels: 86,
     rating: 4.9,
     category: ["Mountain", "Adventure"],
@@ -72,7 +75,7 @@ const destinations: Destination[] = [
     description:
       "Wander through historic streets, colonial architecture and the iconic Galle Fort by the ocean.",
     image:
-      "https://images.unsplash.com/photo-1586861635167-e5223aadc9fe?auto=format&fit=crop&w=1400&q=85",
+      "https://media.istockphoto.com/id/1809403899/photo/famous-fort-galle-lighthouse-at-sunset-sri-lanka.jpg?s=612x612&w=0&k=20&c=lPYZMqJ_L90bpSPz_aRvJFvDa-Bvl2wZCiu7_5P_z_M=",
     hotels: 102,
     rating: 4.7,
     category: ["Culture", "Beach"],
@@ -85,7 +88,7 @@ const destinations: Destination[] = [
     description:
       "Escape into cool mountain air, endless tea estates and peaceful highland landscapes.",
     image:
-      "https://images.unsplash.com/photo-1596402184320-417e7178b2cd?auto=format&fit=crop&w=1400&q=85",
+      "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQgxy553dx5QbZlQ8fRTlPle6nBxj2vdl2cZng6OT7JlZ3rHHEwaBGlw20&s=10",
     hotels: 74,
     rating: 4.7,
     category: ["Mountain", "Adventure"],
@@ -98,7 +101,7 @@ const destinations: Destination[] = [
     description:
       "Golden beaches, turquoise water, sunsets and laid-back coastal escapes.",
     image:
-      "https://images.unsplash.com/photo-1530789253388-582c481c54b0?auto=format&fit=crop&w=1400&q=85",
+      "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT3Myudk4jmbjO2t6dUWqoO1N1iFOVKe4O3cn8ewPclevFlCeJXNUKsAMJv&s=10",
     hotels: 68,
     rating: 4.8,
     category: ["Beach"],
@@ -122,7 +125,7 @@ const destinations: Destination[] = [
     description:
       "A classic tropical getaway with beaches, rivers, resorts and water adventures.",
     image:
-      "https://images.unsplash.com/photo-1540202404-a2f29016b523?auto=format&fit=crop&w=1400&q=85",
+      "https://www.shutterstock.com/image-photo/aerial-view-bentota-beach-secret-600nw-2362648489.jpg",
     hotels: 81,
     rating: 4.6,
     category: ["Beach", "Adventure"],
@@ -134,7 +137,7 @@ const destinations: Destination[] = [
     description:
       "Surf, sunshine and a relaxed coastal atmosphere on Sri Lanka's eastern shore.",
     image:
-      "https://images.unsplash.com/photo-1502680390469-be75c86b636f?auto=format&fit=crop&w=1400&q=85",
+      "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTrK0yt_8IJ98TMu2nDbCTJK1Q3Mbk2ykFmLvxbRvMO_xCzWSaWoj7KMOYc&s=10",
     hotels: 47,
     rating: 4.7,
     category: ["Beach", "Adventure"],
@@ -146,7 +149,7 @@ const destinations: Destination[] = [
     description:
       "Get closer to Sri Lanka's wild side with unforgettable safari and nature experiences.",
     image:
-      "https://images.unsplash.com/photo-1516426122078-c23e76319801?auto=format&fit=crop&w=1400&q=85",
+      "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRCFlQjk8NB20wqEdx-hC0NCEDXXnA3vib60pYGJQgQmg&s=10",
     hotels: 42,
     rating: 4.6,
     category: ["Wildlife", "Adventure"],
@@ -170,7 +173,7 @@ const destinations: Destination[] = [
     description:
       "A lively beach destination known for coral reefs, surfing and coastal nightlife.",
     image:
-      "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1400&q=85",
+      "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTQiL-MPNLFkGoCy9elTeDIlMKTEf77PrcoWuGOG2IiAG0ZVlEjQgBS9a0&s=10",
     hotels: 73,
     rating: 4.6,
     category: ["Beach", "Adventure"],
@@ -226,69 +229,6 @@ const popularDestinations = destinations.filter(
   (destination) => destination.featured
 );
 
-/* =========================================================
-   COUNT UP COMPONENT
-========================================================= */
-
-function CountUp({
-  end,
-  duration = 1800,
-  decimals = 0,
-  suffix = "",
-}: {
-  end: number;
-  duration?: number;
-  decimals?: number;
-  suffix?: string;
-}) {
-  const [count, setCount] = useState(0);
-
-  useEffect(() => {
-    let startTime: number | null = null;
-    let animationFrame: number;
-
-    const animate = (currentTime: number) => {
-      if (startTime === null) {
-        startTime = currentTime;
-      }
-
-      const elapsed = currentTime - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-
-      // Smooth ease-out animation
-      const easedProgress = 1 - Math.pow(1 - progress, 3);
-
-      setCount(end * easedProgress);
-
-      if (progress < 1) {
-        animationFrame = requestAnimationFrame(animate);
-      } else {
-        setCount(end);
-      }
-    };
-
-    animationFrame = requestAnimationFrame(animate);
-
-    return () => {
-      cancelAnimationFrame(animationFrame);
-    };
-  }, [end, duration]);
-
-  return (
-    <span>
-      {count.toLocaleString("en-US", {
-        minimumFractionDigits: decimals,
-        maximumFractionDigits: decimals,
-      })}
-      {suffix}
-    </span>
-  );
-}
-
-/* =========================================================
-   DESTINATIONS PAGE
-========================================================= */
-
 export default function DestinationsPage() {
   const [activeCategory, setActiveCategory] =
     useState<Category>("All");
@@ -314,13 +254,12 @@ export default function DestinationsPage() {
 
   return (
     <main className="min-h-screen overflow-hidden bg-[var(--background)] text-[var(--foreground)]">
-
+      <Navbar/>
       {/* =====================================================
           HERO
       ====================================================== */}
 
       <section className="relative min-h-[720px] overflow-hidden">
-
         {/* Background */}
         <div className="absolute inset-0">
           <img
@@ -364,7 +303,6 @@ export default function DestinationsPage() {
         {/* Hero content */}
         <div className="relative z-10 mx-auto flex min-h-[720px] max-w-7xl items-center px-5 pb-20 pt-32 sm:px-8 lg:px-10">
           <div className="max-w-4xl">
-
             {/* Badge */}
             <motion.div
               initial={{
@@ -446,7 +384,6 @@ export default function DestinationsPage() {
               className="mt-9 max-w-2xl"
             >
               <div className="flex items-center gap-3 rounded-2xl border border-white/20 bg-white/10 p-2 shadow-2xl backdrop-blur-2xl">
-
                 <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white/10">
                   <Search className="h-5 w-5 text-white/70" />
                 </div>
@@ -492,12 +429,11 @@ export default function DestinationsPage() {
         </div>
 
         {/* =================================================
-            STATS WITH COUNT UP
+            STATS WITH REUSABLE COUNT UP
         ================================================= */}
 
         <div className="absolute bottom-0 left-0 right-0 z-10 border-t border-white/10 bg-black/20 backdrop-blur-xl">
           <div className="mx-auto grid max-w-7xl grid-cols-2 divide-x divide-white/10 sm:grid-cols-4">
-
             {/* Destinations */}
             <motion.div
               initial={{
@@ -516,11 +452,12 @@ export default function DestinationsPage() {
             >
               <p className="text-xl font-black text-white sm:text-2xl">
                 <CountUp
-                  end={25}
-                  duration={1800}
-                  decimals={0}
-                  suffix="+"
+                  from={0}
+                  to={25}
+                  duration={1.8}
+                  separator=","
                 />
+                +
               </p>
 
               <p className="mt-1 text-[10px] uppercase tracking-[0.18em] text-white/45 sm:text-xs">
@@ -546,11 +483,12 @@ export default function DestinationsPage() {
             >
               <p className="text-xl font-black text-white sm:text-2xl">
                 <CountUp
-                  end={1000}
-                  duration={2200}
-                  decimals={0}
-                  suffix="+"
+                  from={0}
+                  to={1000}
+                  duration={2.2}
+                  separator=","
                 />
+                +
               </p>
 
               <p className="mt-1 text-[10px] uppercase tracking-[0.18em] text-white/45 sm:text-xs">
@@ -576,9 +514,9 @@ export default function DestinationsPage() {
             >
               <p className="text-xl font-black text-white sm:text-2xl">
                 <CountUp
-                  end={9}
-                  duration={1500}
-                  decimals={0}
+                  from={0}
+                  to={9}
+                  duration={1.5}
                 />
               </p>
 
@@ -605,9 +543,9 @@ export default function DestinationsPage() {
             >
               <p className="flex items-center justify-center gap-1 text-xl font-black text-white sm:text-2xl">
                 <CountUp
-                  end={4.7}
-                  duration={1800}
-                  decimals={1}
+                  from={0}
+                  to={4.7}
+                  duration={1.8}
                 />
               </p>
 
@@ -625,7 +563,6 @@ export default function DestinationsPage() {
 
       <section className="mx-auto max-w-7xl px-5 py-20 sm:px-8 lg:px-10 lg:py-28">
         <div className="mb-10 flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
-
           <div>
             <p className="mb-3 text-xs font-bold uppercase tracking-[0.2em] text-[#B8860B] dark:text-[#F5D76E]">
               Most loved
@@ -671,7 +608,6 @@ export default function DestinationsPage() {
 
       <section className="border-y border-black/5 bg-zinc-50 dark:border-white/5 dark:bg-[#0b0b0b]">
         <div className="mx-auto max-w-7xl px-5 py-20 sm:px-8 lg:px-10 lg:py-24">
-
           <div className="mx-auto max-w-2xl text-center">
             <p className="mb-3 text-xs font-bold uppercase tracking-[0.2em] text-[#B8860B] dark:text-[#F5D76E]">
               Travel your way
@@ -740,9 +676,7 @@ export default function DestinationsPage() {
       ====================================================== */}
 
       <section className="mx-auto max-w-7xl px-5 py-20 sm:px-8 lg:px-10 lg:py-28">
-
         <div className="flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
-
           <div>
             <p className="mb-3 text-xs font-bold uppercase tracking-[0.2em] text-[#B8860B] dark:text-[#F5D76E]">
               Discover more
@@ -803,7 +737,6 @@ export default function DestinationsPage() {
           </motion.div>
         ) : (
           <div className="mt-10 rounded-3xl border border-dashed border-zinc-300 p-16 text-center dark:border-white/10">
-
             <MapPin className="mx-auto h-10 w-10 text-zinc-400" />
 
             <h3 className="mt-4 text-lg font-bold">
@@ -833,15 +766,11 @@ export default function DestinationsPage() {
       ====================================================== */}
 
       <section className="mx-auto max-w-7xl px-5 pb-20 sm:px-8 lg:px-10 lg:pb-28">
-
         <div className="relative overflow-hidden rounded-[2rem] bg-[#111111] p-8 sm:p-12 lg:p-16">
-
           <div className="absolute -right-20 -top-20 h-72 w-72 rounded-full bg-[#D4AF37]/15 blur-[90px]" />
 
           <div className="relative z-10 flex flex-col justify-between gap-10 lg:flex-row lg:items-center">
-
             <div className="max-w-2xl">
-
               <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-white/70">
                 <MapPin className="h-3.5 w-3.5 text-[#F5D76E]" />
 
@@ -899,9 +828,7 @@ export default function DestinationsPage() {
       ====================================================== */}
 
       <section className="border-t border-black/5 dark:border-white/5">
-
         <div className="mx-auto max-w-4xl px-5 py-24 text-center sm:px-8">
-
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#D4AF37]/10 text-[#B8860B] dark:text-[#F5D76E]">
             <Sparkles className="h-6 w-6" />
           </div>
@@ -918,7 +845,6 @@ export default function DestinationsPage() {
           </p>
 
           <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
-
             <Link
               href="/hotels"
               className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[#D4AF37] px-6 py-3.5 text-sm font-bold text-black transition hover:bg-[#F5D76E]"
@@ -1002,7 +928,6 @@ function DestinationCard({
 
         {/* Content */}
         <div className="absolute inset-x-0 bottom-0 p-5 sm:p-6">
-
           <div className="mb-3 flex flex-wrap gap-1.5">
             {destination.category
               .slice(0, 2)
@@ -1031,7 +956,6 @@ function DestinationCard({
           </p>
 
           <div className="mt-5 flex items-center justify-between border-t border-white/10 pt-4">
-
             <div className="flex items-center gap-2 text-xs text-white/65">
               <Building2 className="h-4 w-4" />
 
