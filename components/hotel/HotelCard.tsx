@@ -15,7 +15,6 @@ import {
   Sparkles,
   BedDouble,
   CheckCircle2,
-  XCircle,
 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
@@ -53,10 +52,6 @@ export interface HotelCardData {
 
   isVerified: boolean;
   isPublished: boolean;
-
-  // =====================================================
-  // ROOM AVAILABILITY
-  // =====================================================
 
   totalRooms?: number;
   bookedRooms?: number;
@@ -179,8 +174,7 @@ export default function HotelCard({
       ? hotel.availableRooms
       : 0;
 
-  const hasRooms =
-    availableRooms > 0;
+  const hasRooms = availableRooms > 0;
 
   /*
    * =====================================================
@@ -276,30 +270,6 @@ export default function HotelCard({
           {hotel.propertyType.replaceAll(
             "_",
             " "
-          )}
-        </div>
-
-        {/* =================================================
-            ROOM AVAILABILITY BADGE
-        ================================================= */}
-
-        <div className="absolute bottom-4 right-4">
-          {hasRooms ? (
-            <div className="flex items-center gap-1.5 rounded-full border border-emerald-400/30 bg-emerald-950/70 px-3 py-1.5 text-xs font-semibold text-emerald-300 shadow-lg backdrop-blur-md">
-              <CheckCircle2 className="h-3.5 w-3.5" />
-
-              {availableRooms}{" "}
-              {availableRooms === 1
-                ? "room"
-                : "rooms"}{" "}
-              available
-            </div>
-          ) : (
-            <div className="flex items-center gap-1.5 rounded-full border border-red-400/30 bg-red-950/70 px-3 py-1.5 text-xs font-semibold text-red-300 shadow-lg backdrop-blur-md">
-              <XCircle className="h-3.5 w-3.5" />
-
-              No rooms available
-            </div>
           )}
         </div>
       </div>

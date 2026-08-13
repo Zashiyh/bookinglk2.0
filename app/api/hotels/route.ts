@@ -13,14 +13,13 @@ export async function GET(request: NextRequest) {
 
     const city = searchParams.get("city");
     const district = searchParams.get("district");
-    const propertyType = searchParams.get("propertyType");
+    const propertyTypeParam = searchParams.get("propertyType");
 
     const minPrice = Number(
       searchParams.get("minPrice") || 0
     );
 
-    const maxPriceParam =
-      searchParams.get("maxPrice");
+    const maxPriceParam = searchParams.get("maxPrice");
 
     const minRating = Number(
       searchParams.get("rating") || 0
@@ -51,23 +50,77 @@ export async function GET(request: NextRequest) {
       isPublished: true,
     };
 
-    if (city) {
+    /*
+     * CITY
+     */
+
+    if (city && city.trim() !== "") {
       filter["location.city"] = {
-        $regex: city,
+        $regex: `^${escapeRegex(city.trim())}$`,
         $options: "i",
       };
     }
 
-    if (district) {
+    /*
+     * DISTRICT
+     */
+
+    if (district && district.trim() !== "") {
       filter["location.district"] = {
-        $regex: district,
+        $regex: `^${escapeRegex(district.trim())}$`,
         $options: "i",
       };
     }
 
-    if (propertyType) {
-      filter.propertyType = propertyType;
+    /*
+     * =====================================================
+     * PROPERTY TYPE
+     *
+     * Explore page sends:
+     *
+     * Hotel
+     * Resort
+     * Villa
+     * Guest House
+     * Apartment
+     *
+     * Database may contain:
+     *
+     * HOTEL
+     * RESORT
+     * VILLA
+     * GUEST_HOUSE
+     * APARTMENT
+     *
+     * So normalize before filtering.
+     * =====================================================
+     */
+
+    if (
+      propertyTypeParam &&
+      propertyTypeParam !== "All"
+    ) {
+      const normalizedPropertyType =
+        normalizePropertyType(
+          propertyTypeParam
+        );
+
+      if (normalizedPropertyType) {
+        filter.propertyType = {
+          $in: [
+            normalizedPropertyType,
+            propertyTypeParam,
+            propertyTypeParam.toUpperCase(),
+          ],
+        };
+      }
     }
+
+    /*
+     * =====================================================
+     * PRICE
+     * =====================================================
+     */
 
     if (minPrice > 0 || maxPriceParam) {
       filter.priceFrom = {
@@ -79,6 +132,12 @@ export async function GET(request: NextRequest) {
           : {}),
       };
     }
+
+    /*
+     * =====================================================
+     * RATING
+     * =====================================================
+     */
 
     if (minRating > 0) {
       filter.rating = {
@@ -119,7 +178,9 @@ export async function GET(request: NextRequest) {
           page,
           limit,
           total,
-          totalPages: Math.ceil(total / limit),
+          totalPages: Math.ceil(
+            total / limit
+          ),
         },
       });
     }
@@ -137,9 +198,6 @@ export async function GET(request: NextRequest) {
     /*
      * =====================================================
      * GET ACTIVE ROOMS
-     *
-     * totalRooms = actual physical rooms
-     * belonging to each room type.
      * =====================================================
      */
 
@@ -174,28 +232,14 @@ export async function GET(request: NextRequest) {
 
       totalRoomMap.set(
         hotelId,
-        current + room.totalRooms
+        current +
+          Number(room.totalRooms || 0)
       );
     }
 
     /*
      * =====================================================
-     * FIND ACTIVE BOOKINGS
-     *
-     * We count:
-     *
-     * PENDING
-     * CONFIRMED
-     * COMPLETED
-     *
-     * Cancelled bookings are NOT counted.
-     *
-     * Refunded bookings are NOT counted.
-     * Failed payments are NOT counted.
-     *
-     * Since the hotel card doesn't receive
-     * check-in/check-out dates yet, we use
-     * bookings that are currently active.
+     * ACTIVE BOOKINGS
      * =====================================================
      */
 
@@ -236,12 +280,7 @@ export async function GET(request: NextRequest) {
 
     /*
      * =====================================================
-     * BOOKED ROOM COUNT PER HOTEL
-     * =====================================================
-     *
-     * Every booking represents ONE booked room
-     * because Booking model doesn't have quantity.
-     *
+     * BOOKED ROOM COUNT
      * =====================================================
      */
 
@@ -265,7 +304,7 @@ export async function GET(request: NextRequest) {
 
     /*
      * =====================================================
-     * BUILD HOTEL RESPONSE
+     * BUILD RESPONSE
      * =====================================================
      */
 
@@ -288,10 +327,6 @@ export async function GET(request: NextRequest) {
 
         return {
           ...hotel,
-
-          /*
-           * Availability information
-           */
 
           totalRooms,
 
@@ -341,4 +376,59 @@ export async function GET(request: NextRequest) {
       }
     );
   }
+}
+
+/*
+ * =========================================================
+ * PROPERTY TYPE NORMALIZER
+ * =========================================================
+ */
+
+function normalizePropertyType(
+  value: string
+) {
+  const normalized = value
+    .trim()
+    .toLowerCase()
+    .replace(/[-\s]+/g, "_");
+
+  const propertyTypeMap: Record<
+    string,
+    string
+  > = {
+    hotel: "HOTEL",
+
+    resort: "RESORT",
+
+    villa: "VILLA",
+
+    "guest_house": "GUEST_HOUSE",
+
+    guesthouse: "GUEST_HOUSE",
+
+    apartment: "APARTMENT",
+  };
+
+  return (
+    propertyTypeMap[normalized] ||
+    value
+      .trim()
+      .toUpperCase()
+      .replace(/[-\s]+/g, "_")
+  );
+}
+
+/*
+ * =========================================================
+ * REGEX ESCAPE
+ * =========================================================
+ */
+
+function escapeRegex(
+  value: string
+) {
+  return value.replace(
+    /[.*+?^${}()|[\]\\]/g,
+    "\\$&"
+  );
 }
