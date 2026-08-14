@@ -83,6 +83,12 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    /*
+    |--------------------------------------------------------------------------
+    | AUTH COOKIE
+    |--------------------------------------------------------------------------
+    */
+
     response.cookies.set({
       name: "bookinglk_token",
       value: token,

@@ -8,12 +8,7 @@ import {
   RotateCcw,
   Star,
 } from "lucide-react";
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { Navbar } from "@/components/navbar/navbar";
 
@@ -33,46 +28,7 @@ type SortOption =
   | "price-high"
   | "rating";
 
-type Hotel = HotelCardData & {
-  _id: string;
-
-  name: string;
-
-  description?: string;
-
-  propertyType?: string;
-
-  location?: {
-    city?: string;
-    district?: string;
-    address?: string;
-  };
-
-  coordinates?: {
-    type?: "Point";
-    coordinates?: [number, number];
-  };
-
-  priceFrom?: number;
-
-  rating?: number;
-
-  reviewCount?: number;
-
-  images?: string[];
-
-  thumbnail?: string;
-
-  isPublished?: boolean;
-
-  totalRooms?: number;
-
-  bookedRooms?: number;
-
-  availableRooms?: number;
-
-  hasAvailableRooms?: boolean;
-};
+type Hotel = HotelCardData;
 
 /* =========================================================
    CONSTANTS
@@ -137,46 +93,36 @@ export default function HotelsPage() {
 
   const [hotels, setHotels] = useState<Hotel[]>([]);
 
-  const [loading, setLoading] =
-    useState(true);
+  const [loading, setLoading] = useState(true);
 
-  const [error, setError] =
-    useState("");
+  const [error, setError] = useState("");
 
   /* =======================================================
      SEARCH
   ======================================================= */
 
-  const [search, setSearch] =
-    useState("");
+  const [search, setSearch] = useState("");
 
   /* =======================================================
      FILTERS
   ======================================================= */
 
-  const [city, setCity] =
-    useState("All");
+  const [city, setCity] = useState("All");
 
-  const [propertyType, setPropertyType] =
-    useState("");
+  const [propertyType, setPropertyType] = useState("");
 
-  const [minPrice, setMinPrice] =
-    useState("");
+  const [minPrice, setMinPrice] = useState("");
 
-  const [maxPrice, setMaxPrice] =
-    useState("");
+  const [maxPrice, setMaxPrice] = useState("");
 
-  const [rating, setRating] =
-    useState("");
+  const [rating, setRating] = useState("");
 
   /* =======================================================
      SORT
   ======================================================= */
 
   const [sort, setSort] =
-    useState<SortOption>(
-      "recommended"
-    );
+    useState<SortOption>("recommended");
 
   /* =======================================================
      MOBILE FILTER
@@ -189,219 +135,210 @@ export default function HotelsPage() {
      PAGINATION
   ======================================================= */
 
-  const [page, setPage] =
-    useState(1);
+  const [page, setPage] = useState(1);
 
-  const [totalPages, setTotalPages] =
-    useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
-  const [totalHotels, setTotalHotels] =
-    useState(0);
+  const [totalHotels, setTotalHotels] = useState(0);
 
   /* =======================================================
      FETCH HOTELS
   ======================================================= */
 
-  const fetchHotels =
-    useCallback(async () => {
-      try {
-        setLoading(true);
-        setError("");
+  const fetchHotels = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError("");
 
-        const params =
-          new URLSearchParams();
+      const params = new URLSearchParams();
 
-        /* =================================================
-           CITY
-        ================================================= */
+      /* =================================================
+         SEARCH
+      ================================================= */
+
+      if (search.trim()) {
+        params.set("search", search.trim());
+      }
+
+      /* =================================================
+         CITY
+      ================================================= */
+
+      if (city !== "All") {
+        params.set("city", city);
+      }
+
+      /* =================================================
+         PROPERTY TYPE
+      ================================================= */
+
+      if (propertyType) {
+        params.set(
+          "propertyType",
+          propertyType
+        );
+      }
+
+      /* =================================================
+         MIN PRICE
+      ================================================= */
+
+      if (minPrice) {
+        const value = Number(minPrice);
 
         if (
-          city &&
-          city !== "All"
+          Number.isFinite(value) &&
+          value >= 0
         ) {
           params.set(
-            "city",
-            city
+            "minPrice",
+            value.toString()
           );
         }
-
-        /* =================================================
-           PROPERTY TYPE
-        ================================================= */
-
-        if (propertyType) {
-          params.set(
-            "propertyType",
-            propertyType
-          );
-        }
-
-        /* =================================================
-           MIN PRICE
-        ================================================= */
-
-        if (minPrice) {
-          const value =
-            Number(minPrice);
-
-          if (
-            Number.isFinite(value) &&
-            value >= 0
-          ) {
-            params.set(
-              "minPrice",
-              value.toString()
-            );
-          }
-        }
-
-        /* =================================================
-           MAX PRICE
-        ================================================= */
-
-        if (maxPrice) {
-          const value =
-            Number(maxPrice);
-
-          if (
-            Number.isFinite(value) &&
-            value > 0
-          ) {
-            params.set(
-              "maxPrice",
-              value.toString()
-            );
-          }
-        }
-
-        /* =================================================
-           RATING
-        ================================================= */
-
-        if (rating) {
-          params.set(
-            "rating",
-            rating
-          );
-        }
-
-        /* =================================================
-           PAGINATION
-        ================================================= */
-
-        params.set(
-          "page",
-          page.toString()
-        );
-
-        /*
-         * IMPORTANT
-         *
-         * Exactly 12 cards per page.
-         */
-
-        params.set(
-          "limit",
-          ITEMS_PER_PAGE.toString()
-        );
-
-        /* =================================================
-           API REQUEST
-        ================================================= */
-
-        const query =
-          params.toString();
-
-        const response =
-          await fetch(
-            `/api/hotels?${query}`,
-            {
-              method: "GET",
-              cache: "no-store",
-            }
-          );
-
-        if (!response.ok) {
-          throw new Error(
-            "Failed to fetch hotels."
-          );
-        }
-
-        const result =
-          await response.json();
-
-        if (!result.success) {
-          throw new Error(
-            result.message ||
-              "Failed to fetch hotels."
-          );
-        }
-
-        /* =================================================
-           HOTEL DATA
-        ================================================= */
-
-        const apiHotels =
-          Array.isArray(
-            result.data
-          )
-            ? result.data
-            : [];
-
-        setHotels(
-          apiHotels as Hotel[]
-        );
-
-        /* =================================================
-           PAGINATION DATA
-        ================================================= */
-
-        const pagination =
-          result.pagination;
-
-        setTotalPages(
-          Math.max(
-            Number(
-              pagination?.totalPages
-            ) || 1,
-            1
-          )
-        );
-
-        setTotalHotels(
-          Number(
-            pagination?.total
-          ) || 0
-        );
-      } catch (err) {
-        console.error(
-          "Hotel fetch error:",
-          err
-        );
-
-        setHotels([]);
-
-        setTotalHotels(0);
-
-        setTotalPages(1);
-
-        setError(
-          "We couldn't load the hotels. Please try again."
-        );
-      } finally {
-        setLoading(false);
       }
-    }, [
-      city,
-      propertyType,
-      minPrice,
-      maxPrice,
-      rating,
-      page,
-    ]);
+
+      /* =================================================
+         MAX PRICE
+      ================================================= */
+
+      if (maxPrice) {
+        const value = Number(maxPrice);
+
+        if (
+          Number.isFinite(value) &&
+          value > 0
+        ) {
+          params.set(
+            "maxPrice",
+            value.toString()
+          );
+        }
+      }
+
+      /* =================================================
+         RATING
+      ================================================= */
+
+      if (rating) {
+        params.set("rating", rating);
+      }
+
+      /* =================================================
+         SORT
+      ================================================= */
+
+      params.set("sort", sort);
+
+      /* =================================================
+         PAGINATION
+      ================================================= */
+
+      params.set(
+        "page",
+        page.toString()
+      );
+
+      params.set(
+        "limit",
+        ITEMS_PER_PAGE.toString()
+      );
+
+      /* =================================================
+         REQUEST
+      ================================================= */
+
+      const response = await fetch(
+        `/api/hotels?${params.toString()}`,
+        {
+          method: "GET",
+          cache: "no-store",
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(
+          "Failed to fetch hotels."
+        );
+      }
+
+      const result = await response.json();
+
+      if (!result.success) {
+        throw new Error(
+          result.message ||
+            "Failed to fetch hotels."
+        );
+      }
+
+      /* =================================================
+         HOTEL DATA
+      ================================================= */
+
+      const apiHotels = Array.isArray(
+        result.data
+      )
+        ? result.data
+        : [];
+
+      setHotels(
+        apiHotels as Hotel[]
+      );
+
+      /* =================================================
+         PAGINATION
+      ================================================= */
+
+      const pagination =
+        result.pagination;
+
+      const calculatedTotalPages =
+        Number(
+          pagination?.totalPages
+        ) || 1;
+
+      setTotalPages(
+        Math.max(
+          calculatedTotalPages,
+          1
+        )
+      );
+
+      setTotalHotels(
+        Number(
+          pagination?.total
+        ) || 0
+      );
+    } catch (err) {
+      console.error(
+        "Hotel fetch error:",
+        err
+      );
+
+      setHotels([]);
+
+      setTotalHotels(0);
+
+      setTotalPages(1);
+
+      setError(
+        "We couldn't load the hotels. Please try again."
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, [
+    search,
+    city,
+    propertyType,
+    minPrice,
+    maxPrice,
+    rating,
+    sort,
+    page,
+  ]);
 
   /* =======================================================
-     FETCH WHEN FILTERS / PAGE CHANGE
+     FETCH
   ======================================================= */
 
   useEffect(() => {
@@ -409,225 +346,165 @@ export default function HotelsPage() {
   }, [fetchHotels]);
 
   /* =======================================================
-     RESET PAGE WHEN FILTER CHANGES
+     RESET PAGE WHEN FILTERS CHANGE
   ======================================================= */
 
   useEffect(() => {
     setPage(1);
   }, [
+    search,
     city,
     propertyType,
     minPrice,
     maxPrice,
     rating,
+    sort,
   ]);
 
   /* =======================================================
-     SEARCH + SORT
+     LOCAL SEARCH FALLBACK
   ======================================================= */
 
-  const filteredHotels =
-    useMemo(() => {
-      const query =
-        search
-          .trim()
-          .toLowerCase();
+  const filteredHotels = useMemo(() => {
+    const query =
+      search.trim().toLowerCase();
 
-      let result =
-        [...hotels];
+    let result = [...hotels];
 
-      /* =================================================
-         SEARCH
-      ================================================= */
+    if (query) {
+      result = result.filter(
+        (hotel) => {
+          const name =
+            hotel.name
+              ?.toLowerCase() || "";
 
-      if (query) {
-        result =
-          result.filter(
-            (hotel) => {
-              const name =
-                hotel.name
-                  ?.toLowerCase() ||
-                "";
+          const hotelCity =
+            hotel.location?.city
+              ?.toLowerCase() || "";
 
-              const hotelCity =
-                hotel.location
-                  ?.city
-                  ?.toLowerCase() ||
-                "";
+          const district =
+            hotel.location?.district
+              ?.toLowerCase() || "";
 
-              const district =
-                hotel.location
-                  ?.district
-                  ?.toLowerCase() ||
-                "";
+          const address =
+            hotel.location?.address
+              ?.toLowerCase() || "";
 
-              const address =
-                hotel.location
-                  ?.address
-                  ?.toLowerCase() ||
-                "";
+          const description =
+            hotel.description
+              ?.toLowerCase() || "";
 
-              const description =
-                hotel.description
-                  ?.toLowerCase() ||
-                "";
+          const type =
+            hotel.propertyType
+              ?.toLowerCase() || "";
 
-              const type =
-                hotel.propertyType
-                  ?.toLowerCase() ||
-                "";
-
-              return (
-                name.includes(query) ||
-                hotelCity.includes(query) ||
-                district.includes(query) ||
-                address.includes(query) ||
-                description.includes(query) ||
-                type.includes(query)
-              );
-            }
+          return (
+            name.includes(query) ||
+            hotelCity.includes(query) ||
+            district.includes(query) ||
+            address.includes(query) ||
+            description.includes(query) ||
+            type.includes(query)
           );
-      }
-
-      /* =================================================
-         SORT
-      ================================================= */
-
-      result.sort(
-        (a, b) => {
-          switch (sort) {
-            case "price-low":
-              return (
-                (a.priceFrom ?? 0) -
-                (b.priceFrom ?? 0)
-              );
-
-            case "price-high":
-              return (
-                (b.priceFrom ?? 0) -
-                (a.priceFrom ?? 0)
-              );
-
-            case "rating":
-              return (
-                (b.rating ?? 0) -
-                (a.rating ?? 0)
-              );
-
-            case "recommended":
-            default:
-              return (
-                (b.rating ?? 0) -
-                (a.rating ?? 0)
-              );
-          }
         }
       );
+    }
 
-      return result;
-    }, [
-      hotels,
-      search,
-      sort,
-    ]);
+    /*
+     * API sorting is preferred.
+     * This is also a safe client-side fallback.
+     */
+
+    result.sort((a, b) => {
+      switch (sort) {
+        case "price-low":
+          return (
+            (a.priceFrom ?? 0) -
+            (b.priceFrom ?? 0)
+          );
+
+        case "price-high":
+          return (
+            (b.priceFrom ?? 0) -
+            (a.priceFrom ?? 0)
+          );
+
+        case "rating":
+          return (
+            (b.rating ?? 0) -
+            (a.rating ?? 0)
+          );
+
+        case "recommended":
+        default:
+          return (
+            (b.rating ?? 0) -
+            (a.rating ?? 0)
+          );
+      }
+    });
+
+    return result;
+  }, [
+    hotels,
+    search,
+    sort,
+  ]);
 
   /* =======================================================
      CLEAR FILTERS
   ======================================================= */
 
-  const clearFilters =
-    () => {
-      setCity("All");
-
-      setPropertyType("");
-
-      setMinPrice("");
-
-      setMaxPrice("");
-
-      setRating("");
-
-      setSearch("");
-
-      setSort(
-        "recommended"
-      );
-
-      setPage(1);
-    };
+  const clearFilters = () => {
+    setCity("All");
+    setPropertyType("");
+    setMinPrice("");
+    setMaxPrice("");
+    setRating("");
+    setSearch("");
+    setSort("recommended");
+    setPage(1);
+  };
 
   /* =======================================================
-     CITY CHANGE
+     PREVIOUS
   ======================================================= */
 
-  const handleCityChange =
-    (value: string) => {
-      setCity(value);
-      setPage(1);
-    };
+  const handlePrevious = () => {
+    if (page <= 1) return;
+
+    setPage((current) =>
+      Math.max(current - 1, 1)
+    );
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+  };
 
   /* =======================================================
-     PROPERTY TYPE CHANGE
+     NEXT
   ======================================================= */
 
-  const handlePropertyTypeChange =
-    (value: string) => {
-      setPropertyType(value);
-      setPage(1);
-    };
+  const handleNext = () => {
+    if (page >= totalPages) return;
+
+    setPage((current) =>
+      Math.min(
+        current + 1,
+        totalPages
+      )
+    );
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+  };
 
   /* =======================================================
-     PREVIOUS PAGE
-  ======================================================= */
-
-  const handlePrevious =
-    () => {
-      if (page <= 1) {
-        return;
-      }
-
-      setPage(
-        (current) =>
-          Math.max(
-            current - 1,
-            1
-          )
-      );
-
-      window.scrollTo({
-        top: 0,
-        behavior: "smooth",
-      });
-    };
-
-  /* =======================================================
-     NEXT PAGE
-  ======================================================= */
-
-  const handleNext =
-    () => {
-      if (
-        page >= totalPages
-      ) {
-        return;
-      }
-
-      setPage(
-        (current) =>
-          Math.min(
-            current + 1,
-            totalPages
-          )
-      );
-
-      window.scrollTo({
-        top: 0,
-        behavior: "smooth",
-      });
-    };
-
-  /* =======================================================
-     PAGINATION RANGE
+     RANGE
   ======================================================= */
 
   const showingFrom =
@@ -637,12 +514,21 @@ export default function HotelsPage() {
           ITEMS_PER_PAGE +
         1;
 
-  const showingTo =
-    Math.min(
-      page *
-        ITEMS_PER_PAGE,
-      totalHotels
-    );
+  const showingTo = Math.min(
+    page * ITEMS_PER_PAGE,
+    totalHotels
+  );
+
+  /* =======================================================
+     ACTIVE FILTERS
+  ======================================================= */
+
+  const hasActiveFilters =
+    city !== "All" ||
+    propertyType ||
+    minPrice ||
+    maxPrice ||
+    rating;
 
   /* =======================================================
      RENDER
@@ -650,7 +536,6 @@ export default function HotelsPage() {
 
   return (
     <main className="min-h-screen bg-white text-zinc-900 transition-colors duration-300 dark:bg-[#050505] dark:text-white">
-
       {/* =================================================
           NAVBAR
       ================================================= */}
@@ -662,41 +547,31 @@ export default function HotelsPage() {
       ================================================= */}
 
       <section className="border-b border-zinc-200/80 bg-zinc-50/80 pb-10 pt-32 dark:border-white/10 dark:bg-[#080808]">
-
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-
           <div className="flex flex-col items-center text-center">
-
             {/* BADGE */}
 
             <div className="inline-flex items-center gap-2 rounded-full border border-[#D4AF37]/20 bg-[#D4AF37]/5 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#B8860B] dark:text-[#F5D76E]">
-
               <span className="h-1.5 w-1.5 rounded-full bg-[#D4AF37]" />
 
               Explore Sri Lanka
-
             </div>
 
             {/* TITLE */}
 
             <h1 className="mt-6 text-4xl font-semibold tracking-tight sm:text-5xl lg:text-6xl">
-
               Find your perfect stay
-
             </h1>
 
             <p className="mt-4 max-w-2xl text-sm leading-7 text-zinc-500 dark:text-zinc-400 sm:text-base">
-
               Discover hotels, resorts,
               villas and unique stays
               across Sri Lanka.
-
             </p>
 
             {/* SEARCH */}
 
             <div className="mt-8 flex w-full max-w-2xl items-center rounded-2xl border border-zinc-200 bg-white p-2 shadow-sm transition focus-within:border-[#D4AF37] focus-within:shadow-md dark:border-white/10 dark:bg-[#111111]">
-
               <Search className="ml-3 h-5 w-5 shrink-0 text-zinc-400" />
 
               <input
@@ -722,13 +597,9 @@ export default function HotelsPage() {
                   <X className="h-4 w-4" />
                 </button>
               )}
-
             </div>
-
           </div>
-
         </div>
-
       </section>
 
       {/* =================================================
@@ -736,68 +607,48 @@ export default function HotelsPage() {
       ================================================= */}
 
       <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8 lg:py-12">
-
         <div className="flex gap-8">
-
           {/* =================================================
               DESKTOP FILTER
           ================================================= */}
 
           <aside className="hidden w-72 shrink-0 lg:block">
-
             <div className="sticky top-28">
-
               <Filters
                 city={city}
-                setCity={
-                  handleCityChange
-                }
+                setCity={(value) => {
+                  setCity(value);
+                  setPage(1);
+                }}
                 propertyType={
                   propertyType
                 }
-                setPropertyType={
-                  handlePropertyTypeChange
-                }
-                minPrice={
-                  minPrice
-                }
-                setMinPrice={
-                  (value) => {
-                    setMinPrice(
-                      value
-                    );
-                    setPage(1);
-                  }
-                }
-                maxPrice={
-                  maxPrice
-                }
-                setMaxPrice={
-                  (value) => {
-                    setMaxPrice(
-                      value
-                    );
-                    setPage(1);
-                  }
-                }
-                rating={
-                  rating
-                }
-                setRating={
-                  (value) => {
-                    setRating(
-                      value
-                    );
-                    setPage(1);
-                  }
-                }
+                setPropertyType={(value) => {
+                  setPropertyType(
+                    value
+                  );
+                  setPage(1);
+                }}
+                minPrice={minPrice}
+                setMinPrice={(value) => {
+                  setMinPrice(value);
+                  setPage(1);
+                }}
+                maxPrice={maxPrice}
+                setMaxPrice={(value) => {
+                  setMaxPrice(value);
+                  setPage(1);
+                }}
+                rating={rating}
+                setRating={(value) => {
+                  setRating(value);
+                  setPage(1);
+                }}
                 clearFilters={
                   clearFilters
                 }
               />
-
             </div>
-
           </aside>
 
           {/* =================================================
@@ -805,17 +656,11 @@ export default function HotelsPage() {
           ================================================= */}
 
           <section className="min-w-0 flex-1">
-
-            {/* =================================================
-                TOOLBAR
-            ================================================= */}
+            {/* TOOLBAR */}
 
             <div className="mb-7 flex flex-wrap items-center justify-between gap-4">
-
               <div>
-
                 <p className="text-sm text-zinc-500 dark:text-zinc-400">
-
                   {loading
                     ? "Finding stays..."
                     : `${filteredHotels.length} ${
@@ -824,29 +669,22 @@ export default function HotelsPage() {
                           ? "property"
                           : "properties"
                       } shown`}
-
                 </p>
 
                 {!loading &&
-                  totalHotels >
-                    0 && (
+                  totalHotels > 0 && (
                     <p className="mt-1 text-xs text-zinc-400">
-
                       Showing{" "}
-                      {showingFrom}
-                      –
+                      {showingFrom} –{" "}
                       {showingTo} of{" "}
                       {totalHotels}{" "}
                       published
                       properties
-
                     </p>
                   )}
-
               </div>
 
               <div className="flex items-center gap-2">
-
                 {/* MOBILE FILTER */}
 
                 <button
@@ -858,22 +696,17 @@ export default function HotelsPage() {
                   }
                   className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-4 py-2.5 text-sm font-medium transition hover:bg-zinc-50 lg:hidden dark:border-white/10 dark:bg-[#111111] dark:hover:bg-white/5"
                 >
-
                   <SlidersHorizontal className="h-4 w-4" />
 
                   Filters
-
                 </button>
 
                 {/* SORT */}
 
                 <div className="relative">
-
                   <select
                     value={sort}
-                    onChange={(
-                      event
-                    ) =>
+                    onChange={(event) =>
                       setSort(
                         event.target
                           .value as SortOption
@@ -881,7 +714,6 @@ export default function HotelsPage() {
                     }
                     className="appearance-none rounded-full border border-zinc-200 bg-white py-2.5 pl-4 pr-10 text-sm font-medium outline-none transition focus:border-[#D4AF37] dark:border-white/10 dark:bg-[#111111]"
                   >
-
                     <option value="recommended">
                       Recommended
                     </option>
@@ -897,46 +729,31 @@ export default function HotelsPage() {
                     <option value="rating">
                       Highest Rated
                     </option>
-
                   </select>
 
                   <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2" />
-
                 </div>
-
               </div>
-
             </div>
 
             {/* =================================================
-                ACTIVE FILTER INFO
+                ACTIVE FILTERS
             ================================================= */}
 
-            {(city !== "All" ||
-              propertyType ||
-              minPrice ||
-              maxPrice ||
-              rating) && (
-
+            {hasActiveFilters && (
               <div className="mb-7 flex flex-wrap items-center gap-2">
-
                 <span className="text-xs font-medium text-zinc-400">
                   Active:
                 </span>
 
-                {city !==
-                  "All" && (
-
+                {city !== "All" && (
                   <span className="rounded-full bg-[#D4AF37]/10 px-3 py-1.5 text-xs font-semibold text-[#9a7800] dark:text-[#F5D76E]">
                     {city}
                   </span>
-
                 )}
 
                 {propertyType && (
-
                   <span className="rounded-full bg-[#D4AF37]/10 px-3 py-1.5 text-xs font-semibold text-[#9a7800] dark:text-[#F5D76E]">
-
                     {
                       propertyTypes.find(
                         (item) =>
@@ -944,42 +761,25 @@ export default function HotelsPage() {
                           propertyType
                       )?.label
                     }
-
                   </span>
-
                 )}
 
                 {minPrice && (
-
                   <span className="rounded-full bg-zinc-100 px-3 py-1.5 text-xs font-semibold dark:bg-white/10">
-
-                    Min Rs.{" "}
-                    {minPrice}
-
+                    Min Rs. {minPrice}
                   </span>
-
                 )}
 
                 {maxPrice && (
-
                   <span className="rounded-full bg-zinc-100 px-3 py-1.5 text-xs font-semibold dark:bg-white/10">
-
-                    Max Rs.{" "}
-                    {maxPrice}
-
+                    Max Rs. {maxPrice}
                   </span>
-
                 )}
 
                 {rating && (
-
                   <span className="rounded-full bg-zinc-100 px-3 py-1.5 text-xs font-semibold dark:bg-white/10">
-
-                    {rating}+
-                    rating
-
+                    {rating}+ rating
                   </span>
-
                 )}
 
                 <button
@@ -991,9 +791,7 @@ export default function HotelsPage() {
                 >
                   Clear all
                 </button>
-
               </div>
-
             )}
 
             {/* =================================================
@@ -1001,13 +799,9 @@ export default function HotelsPage() {
             ================================================= */}
 
             {error && (
-
               <div className="rounded-3xl border border-red-500/20 bg-red-500/5 p-8 text-center">
-
                 <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-red-500/10">
-
                   <X className="h-6 w-6 text-red-500" />
-
                 </div>
 
                 <h2 className="mt-5 text-lg font-semibold">
@@ -1027,9 +821,7 @@ export default function HotelsPage() {
                 >
                   Try again
                 </button>
-
               </div>
-
             )}
 
             {/* =================================================
@@ -1038,25 +830,18 @@ export default function HotelsPage() {
 
             {loading &&
               !error && (
-
                 <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
-
                   {Array.from({
-                    length: ITEMS_PER_PAGE,
+                    length:
+                      ITEMS_PER_PAGE,
                   }).map(
                     (_, index) => (
-
                       <HotelCardSkeleton
-                        key={
-                          index
-                        }
+                        key={index}
                       />
-
                     )
                   )}
-
                 </div>
-
               )}
 
             {/* =================================================
@@ -1067,13 +852,9 @@ export default function HotelsPage() {
               !error &&
               filteredHotels.length ===
                 0 && (
-
                 <div className="rounded-3xl border border-dashed border-zinc-300 bg-white p-12 text-center dark:border-white/10 dark:bg-[#111111]">
-
                   <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#D4AF37]/10">
-
                     <Search className="h-6 w-6 text-[#D4AF37]" />
-
                   </div>
 
                   <h2 className="mt-5 text-xl font-semibold">
@@ -1081,11 +862,9 @@ export default function HotelsPage() {
                   </h2>
 
                   <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-zinc-500 dark:text-zinc-400">
-
                     Try changing your
                     destination, price
                     range or filters.
-
                   </p>
 
                   <button
@@ -1097,9 +876,7 @@ export default function HotelsPage() {
                   >
                     Clear filters
                   </button>
-
                 </div>
-
               )}
 
             {/* =================================================
@@ -1110,26 +887,18 @@ export default function HotelsPage() {
               !error &&
               filteredHotels.length >
                 0 && (
-
                 <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
-
                   {filteredHotels.map(
                     (hotel) => (
-
                       <HotelCard
                         key={
                           hotel._id
                         }
-                        hotel={
-                          hotel
-                        }
+                        hotel={hotel}
                       />
-
                     )
                   )}
-
                 </div>
-
               )}
 
             {/* =================================================
@@ -1139,15 +908,8 @@ export default function HotelsPage() {
             {!loading &&
               !error &&
               totalPages > 1 && (
-
                 <div className="mt-12 flex flex-col items-center gap-4">
-
-                  {/* BUTTONS */}
-
                   <div className="flex items-center gap-3">
-
-                    {/* PREVIOUS */}
-
                     <button
                       type="button"
                       disabled={
@@ -1161,14 +923,10 @@ export default function HotelsPage() {
                       Previous
                     </button>
 
-                    {/* PAGE */}
-
                     <div className="rounded-full bg-[#D4AF37] px-5 py-2.5 text-xs font-black text-black">
                       {page} /{" "}
                       {totalPages}
                     </div>
-
-                    {/* NEXT */}
 
                     <button
                       type="button"
@@ -1183,30 +941,19 @@ export default function HotelsPage() {
                     >
                       Next
                     </button>
-
                   </div>
 
-                  {/* RANGE */}
-
                   <p className="text-xs text-zinc-400">
-
                     Showing{" "}
-                    {showingFrom}
-                    –
+                    {showingFrom} –{" "}
                     {showingTo} of{" "}
                     {totalHotels}{" "}
                     properties
-
                   </p>
-
                 </div>
-
               )}
-
           </section>
-
         </div>
-
       </section>
 
       {/* =================================================
@@ -1214,9 +961,7 @@ export default function HotelsPage() {
       ================================================= */}
 
       {mobileFilters && (
-
         <div className="fixed inset-0 z-50 lg:hidden">
-
           {/* OVERLAY */}
 
           <button
@@ -1233,13 +978,8 @@ export default function HotelsPage() {
           {/* DRAWER */}
 
           <div className="absolute bottom-0 left-0 right-0 max-h-[90vh] overflow-y-auto rounded-t-[2rem] border-t border-zinc-200 bg-white p-6 dark:border-white/10 dark:bg-[#111111]">
-
-            {/* HEADER */}
-
             <div className="mb-7 flex items-center justify-between">
-
               <div>
-
                 <p className="text-xs font-semibold uppercase tracking-wider text-[#B8860B] dark:text-[#F5D76E]">
                   Refine results
                 </p>
@@ -1247,7 +987,6 @@ export default function HotelsPage() {
                 <h2 className="mt-1 text-xl font-semibold">
                   Filters
                 </h2>
-
               </div>
 
               <button
@@ -1260,65 +999,44 @@ export default function HotelsPage() {
                 aria-label="Close filters"
                 className="rounded-full p-2 transition hover:bg-zinc-100 dark:hover:bg-white/10"
               >
-
                 <X className="h-5 w-5" />
-
               </button>
-
             </div>
-
-            {/* FILTERS */}
 
             <Filters
               city={city}
-              setCity={
-                handleCityChange
-              }
+              setCity={(value) => {
+                setCity(value);
+                setPage(1);
+              }}
               propertyType={
                 propertyType
               }
-              setPropertyType={
-                handlePropertyTypeChange
-              }
-              minPrice={
-                minPrice
-              }
-              setMinPrice={
-                (value) => {
-                  setMinPrice(
-                    value
-                  );
-                  setPage(1);
-                }
-              }
-              maxPrice={
-                maxPrice
-              }
-              setMaxPrice={
-                (value) => {
-                  setMaxPrice(
-                    value
-                  );
-                  setPage(1);
-                }
-              }
-              rating={
-                rating
-              }
-              setRating={
-                (value) => {
-                  setRating(
-                    value
-                  );
-                  setPage(1);
-                }
-              }
+              setPropertyType={(value) => {
+                setPropertyType(
+                  value
+                );
+                setPage(1);
+              }}
+              minPrice={minPrice}
+              setMinPrice={(value) => {
+                setMinPrice(value);
+                setPage(1);
+              }}
+              maxPrice={maxPrice}
+              setMaxPrice={(value) => {
+                setMaxPrice(value);
+                setPage(1);
+              }}
+              rating={rating}
+              setRating={(value) => {
+                setRating(value);
+                setPage(1);
+              }}
               clearFilters={
                 clearFilters
               }
             />
-
-            {/* SHOW RESULTS */}
 
             <button
               type="button"
@@ -1331,13 +1049,9 @@ export default function HotelsPage() {
             >
               Show results
             </button>
-
           </div>
-
         </div>
-
       )}
-
     </main>
   );
 }
@@ -1399,15 +1113,10 @@ function Filters({
 }: FiltersProps) {
   return (
     <div className="rounded-3xl border border-zinc-200 bg-white p-5 dark:border-white/10 dark:bg-[#111111]">
-
-      {/* =================================================
-          HEADER
-      ================================================= */}
+      {/* HEADER */}
 
       <div className="flex items-center justify-between">
-
         <div>
-
           <p className="text-xs font-semibold uppercase tracking-wider text-[#B8860B] dark:text-[#F5D76E]">
             Refine
           </p>
@@ -1415,33 +1124,23 @@ function Filters({
           <h2 className="mt-1 text-lg font-semibold">
             Filters
           </h2>
-
         </div>
 
         <button
           type="button"
-          onClick={
-            clearFilters
-          }
+          onClick={clearFilters}
           className="flex items-center gap-1 text-xs font-medium text-zinc-400 transition hover:text-[#B8860B] dark:hover:text-[#F5D76E]"
         >
-
           <RotateCcw className="h-3 w-3" />
-
           Reset
-
         </button>
-
       </div>
 
       <div className="my-6 h-px bg-zinc-100 dark:bg-white/5" />
 
-      {/* =================================================
-          DESTINATION
-      ================================================= */}
+      {/* DESTINATION */}
 
       <div>
-
         <label
           htmlFor="destination"
           className="text-sm font-medium"
@@ -1450,7 +1149,6 @@ function Filters({
         </label>
 
         <div className="relative mt-2">
-
           <select
             id="destination"
             value={city}
@@ -1461,37 +1159,25 @@ function Filters({
             }
             className="w-full appearance-none rounded-xl border border-zinc-200 bg-white px-3 py-3 pr-10 text-sm outline-none transition focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/10 dark:border-white/10 dark:bg-[#111111]"
           >
-
-            {cities.map(
-              (item) => (
-
-                <option
-                  key={item}
-                  value={item}
-                >
-                  {item ===
-                  "All"
-                    ? "All destinations"
-                    : item}
-                </option>
-
-              )
-            )}
-
+            {cities.map((item) => (
+              <option
+                key={item}
+                value={item}
+              >
+                {item === "All"
+                  ? "All destinations"
+                  : item}
+              </option>
+            ))}
           </select>
 
           <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
-
         </div>
-
       </div>
 
-      {/* =================================================
-          PROPERTY TYPE
-      ================================================= */}
+      {/* PROPERTY TYPE */}
 
       <div className="mt-7">
-
         <label
           htmlFor="property-type"
           className="text-sm font-medium"
@@ -1500,69 +1186,50 @@ function Filters({
         </label>
 
         <div className="relative mt-2">
-
           <select
             id="property-type"
-            value={
-              propertyType
-            }
+            value={propertyType}
             onChange={(event) =>
               setPropertyType(
-                event.target
-                  .value
+                event.target.value
               )
             }
             className="w-full appearance-none rounded-xl border border-zinc-200 bg-white px-3 py-3 pr-10 text-sm outline-none transition focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/10 dark:border-white/10 dark:bg-[#111111]"
           >
-
             {propertyTypes.map(
               (item) => (
-
                 <option
                   key={
                     item.value ||
                     "all"
                   }
-                  value={
-                    item.value
-                  }
+                  value={item.value}
                 >
                   {item.label}
                 </option>
-
               )
             )}
-
           </select>
 
           <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
-
         </div>
-
       </div>
 
-      {/* =================================================
-          PRICE
-      ================================================= */}
+      {/* PRICE */}
 
       <div className="mt-7">
-
         <label className="text-sm font-medium">
           Price per night
         </label>
 
         <div className="mt-2 grid grid-cols-2 gap-2">
-
           <input
             type="number"
             min="0"
-            value={
-              minPrice
-            }
+            value={minPrice}
             onChange={(event) =>
               setMinPrice(
-                event.target
-                  .value
+                event.target.value
               )
             }
             placeholder="Min"
@@ -1572,51 +1239,32 @@ function Filters({
           <input
             type="number"
             min="0"
-            value={
-              maxPrice
-            }
+            value={maxPrice}
             onChange={(event) =>
               setMaxPrice(
-                event.target
-                  .value
+                event.target.value
               )
             }
             placeholder="Max"
             className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm outline-none transition placeholder:text-zinc-400 focus:border-[#D4AF37] dark:border-white/10 dark:bg-[#111111]"
           />
-
         </div>
-
       </div>
 
-      {/* =================================================
-          RATING
-      ================================================= */}
+      {/* RATING */}
 
       <div className="mt-7">
-
         <label className="text-sm font-medium">
           Guest rating
         </label>
 
         <div className="mt-3 space-y-2">
-
           {[
-            [
-              "5",
-              "5.0+ rating",
-            ],
-            [
-              "4",
-              "4.0+ rating",
-            ],
-            [
-              "3",
-              "3.0+ rating",
-            ],
+            ["5", "5.0+ rating"],
+            ["4", "4.0+ rating"],
+            ["3", "3.0+ rating"],
           ].map(
             ([value, label]) => (
-
               <button
                 key={value}
                 type="button"
@@ -1629,33 +1277,25 @@ function Filters({
                   )
                 }
                 className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition ${
-                  rating ===
-                  value
+                  rating === value
                     ? "bg-[#D4AF37]/10 font-semibold text-[#9a7800] dark:text-[#F5D76E]"
                     : "text-zinc-600 hover:bg-zinc-50 dark:text-zinc-300 dark:hover:bg-white/5"
                 }`}
               >
-
                 <Star
                   className={`h-4 w-4 ${
-                    rating ===
-                    value
+                    rating === value
                       ? "fill-current"
                       : ""
                   }`}
                 />
 
                 {label}
-
               </button>
-
             )
           )}
-
         </div>
-
       </div>
-
     </div>
   );
 }

@@ -1,9 +1,14 @@
-
 import mongoose, {
   Schema,
   Document,
   Model,
 } from "mongoose";
+
+/*
+|--------------------------------------------------------------------------
+| User Roles
+|--------------------------------------------------------------------------
+*/
 
 export type UserRole =
   | "USER"
@@ -11,6 +16,12 @@ export type UserRole =
   | "HOTEL_MANAGER"
   | "ADMIN"
   | "SUPER_ADMIN";
+
+/*
+|--------------------------------------------------------------------------
+| User Interface
+|--------------------------------------------------------------------------
+*/
 
 export interface IUser extends Document {
   firstName: string;
@@ -21,7 +32,7 @@ export interface IUser extends Document {
 
   role: UserRole;
 
-  avatar?: string;
+  avatar?: string | null;
 
   isActive: boolean;
   isEmailVerified: boolean;
@@ -29,6 +40,12 @@ export interface IUser extends Document {
   createdAt: Date;
   updatedAt: Date;
 }
+
+/*
+|--------------------------------------------------------------------------
+| User Schema
+|--------------------------------------------------------------------------
+*/
 
 const UserSchema = new Schema<IUser>(
   {
@@ -101,7 +118,25 @@ const UserSchema = new Schema<IUser>(
   }
 );
 
-export const User: Model<IUser> =
-  mongoose.models.User ||
-  mongoose.model<IUser>("User", UserSchema);
+/*
+|--------------------------------------------------------------------------
+| Prevent model overwrite during Next.js hot reload
+|--------------------------------------------------------------------------
+*/
 
+const User: Model<IUser> =
+  mongoose.models.User ||
+  mongoose.model<IUser>(
+    "User",
+    UserSchema
+  );
+
+/*
+
+| Exports
+
+*/
+
+export { User };
+
+export default User;
