@@ -1,11 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import connectDB from "@/lib/db/mongoose";
-import  { User  }   from "@/models/User";
+import User from "@/models/User";
+import Hotel from "@/models/Hotel";
+import Booking from "@/models/Booking";
 import { verifyToken } from "@/lib/auth/jwt";
 
 export async function GET(req: NextRequest) {
   try {
+    // --------------------------------------------------
+    // AUTHENTICATION
+    // --------------------------------------------------
+
     const token = req.cookies.get("bookinglk_token")?.value;
 
     if (!token) {
@@ -43,123 +49,196 @@ export async function GET(req: NextRequest) {
       );
     }
 
+    // --------------------------------------------------
+    // DATABASE
+    // --------------------------------------------------
+
     await connectDB();
 
-    /*
-     * USERS
-     */
-    const totalUsers = await User.countDocuments({
-      role: "USER",
-    });
+    // --------------------------------------------------
+    // USERS
+    // --------------------------------------------------
 
-    const totalAdmins = await User.countDocuments({
-      role: {
-        $in: ["ADMIN", "SUPER_ADMIN"],
+    const [
+      totalUsers,
+      totalAdmins,
+      totalHotels,
+      totalBookings,
+      pendingBookings,
+      confirmedBookings,
+      cancelledBookings,
+    ] = await Promise.all([
+      User.countDocuments({
+        role: "USER",
+      }),
+
+      User.countDocuments({
+        role: {
+          $in: ["ADMIN", "SUPER_ADMIN"],
+        },
+      }),
+
+      Hotel.countDocuments(),
+
+      Booking.countDocuments(),
+
+      Booking.countDocuments({
+        status: "PENDING",
+      }),
+
+      Booking.countDocuments({
+        status: "CONFIRMED",
+      }),
+
+      Booking.countDocuments({
+        status: "CANCELLED",
+      }),
+    ]);
+
+    // --------------------------------------------------
+    // REVENUE
+    //
+    // Revenue = PAID bookings
+    // excluding cancelled bookings
+    // --------------------------------------------------
+
+    const revenueResult = await Booking.aggregate([
+      {
+        $match: {
+          paymentStatus: "PAID",
+          status: {
+            $ne: "CANCELLED",
+          },
+        },
       },
-    });
-
-    /*
-     * Optional models
-     *
-     * These are loaded dynamically so the dashboard
-     * won't crash before Hotel / Booking models exist.
-     */
-
-    let totalHotels = 0;
-    let totalBookings = 0;
-    let confirmedBookings = 0;
-    let pendingBookings = 0;
-    let cancelledBookings = 0;
-    let totalRevenue = 0;
-
-    try {
-      const { default: Hotel } = await import(
-        "@/models/Hotel"
-      );
-
-      totalHotels = await Hotel.countDocuments();
-    } catch {
-      totalHotels = 0;
-    }
-
-    try {
-      const { default: Booking } = await import(
-        "@/models/Booking"
-      );
-
-      totalBookings = await Booking.countDocuments();
-
-      confirmedBookings =
-        await Booking.countDocuments({
-          status: "CONFIRMED",
-        });
-
-      pendingBookings =
-        await Booking.countDocuments({
-          status: "PENDING",
-        });
-
-      cancelledBookings =
-        await Booking.countDocuments({
-          status: "CANCELLED",
-        });
-
-      const revenueResult =
-        await Booking.aggregate([
-          {
-            $match: {
-              status: "CONFIRMED",
+      {
+        $group: {
+          _id: null,
+          total: {
+            $sum: {
+              $ifNull: ["$total", 0],
             },
           },
-          {
-            $group: {
-              _id: null,
-              total: {
-                $sum: {
-                  $ifNull: [
-                    "$totalAmount",
-                    0,
-                  ],
-                },
+        },
+      },
+    ]);
+
+    const revenue = Number(
+      revenueResult[0]?.total ?? 0
+    );
+
+    // --------------------------------------------------
+    // RECENT BOOKINGS
+    // --------------------------------------------------
+
+    const recentBookings = await Booking.find({})
+      .sort({
+        createdAt: -1,
+      })
+      .limit(8)
+      .populate({
+        path: "hotelId",
+        select: "name location",
+      })
+      .lean();
+
+    // --------------------------------------------------
+    // NORMALIZE RECENT BOOKINGS
+    // --------------------------------------------------
+
+    const normalizedRecentBookings =
+      recentBookings.map((booking: any) => ({
+        _id: String(booking._id),
+
+        bookingReference:
+          booking.bookingReference ?? "N/A",
+
+        guest: {
+          firstName:
+            booking.guest?.firstName ?? "",
+
+          lastName:
+            booking.guest?.lastName ?? "",
+
+          email:
+            booking.guest?.email ?? "",
+        },
+
+        hotelId: booking.hotelId
+          ? {
+              _id: String(
+                booking.hotelId._id
+              ),
+
+              name:
+                booking.hotelId.name ??
+                "Unknown hotel",
+
+              location: {
+                city:
+                  booking.hotelId.location
+                    ?.city ?? "",
               },
-            },
-          },
-        ]);
+            }
+          : undefined,
 
-      totalRevenue =
-        revenueResult[0]?.total ?? 0;
-    } catch {
-      /*
-       * Booking model may not exist yet.
-       */
-    }
+        checkIn: booking.checkIn
+          ? new Date(
+              booking.checkIn
+            ).toISOString()
+          : "",
+
+        checkOut: booking.checkOut
+          ? new Date(
+              booking.checkOut
+            ).toISOString()
+          : "",
+
+        total: Number(
+          booking.total ?? 0
+        ),
+
+        currency:
+          booking.currency ?? "LKR",
+
+        status:
+          booking.status ?? "PENDING",
+
+        paymentStatus:
+          booking.paymentStatus ??
+          "PENDING",
+
+        createdAt: booking.createdAt
+          ? new Date(
+              booking.createdAt
+            ).toISOString()
+          : "",
+      }));
+
+    // --------------------------------------------------
+    // RESPONSE
+    //
+    // IMPORTANT:
+    // This shape matches page.tsx exactly.
+    // --------------------------------------------------
 
     return NextResponse.json({
       success: true,
+
       data: {
-        users: {
-          total: totalUsers,
+        stats: {
+          totalUsers,
+          totalAdmins,
+          totalHotels,
+          totalBookings,
+          pendingBookings,
+          confirmedBookings,
+          cancelledBookings,
+          revenue,
         },
 
-        admins: {
-          total: totalAdmins,
-        },
-
-        hotels: {
-          total: totalHotels,
-        },
-
-        bookings: {
-          total: totalBookings,
-          confirmed: confirmedBookings,
-          pending: pendingBookings,
-          cancelled: cancelledBookings,
-        },
-
-        revenue: {
-          total: totalRevenue,
-          currency: "LKR",
-        },
+        recentBookings:
+          normalizedRecentBookings,
       },
     });
   } catch (error) {

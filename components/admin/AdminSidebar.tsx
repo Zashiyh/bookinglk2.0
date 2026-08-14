@@ -16,7 +16,7 @@ import {
 const items = [
   {
     label: "Dashboard",
-    href: "/admin",
+    href: "/admin/dashboard",
     icon: BarChart3,
   },
   {
@@ -58,77 +58,124 @@ export default function AdminSidebar() {
     try {
       await fetch("/api/auth/logout", {
         method: "POST",
+        credentials: "include",
       });
     } catch (error) {
       console.error("LOGOUT ERROR:", error);
+    } finally {
+      window.location.href = "/login";
+    }
+  }
+
+  /*
+   * Active navigation logic
+   *
+   * /admin              -> Dashboard
+   * /admin/hotels       -> Hotels
+   * /admin/hotels/123   -> Hotels
+   * /admin/bookings     -> Bookings
+   * /admin/bookings/123 -> Bookings
+   *
+   * Dashboard uses an exact match so it does NOT
+   * become active on every /admin/... page.
+   */
+  function isActive(href: string) {
+    if (href === "/admin") {
+      return pathname === "/admin";
     }
 
-    window.location.href = "/login";
+    return (
+      pathname === href ||
+      pathname.startsWith(`${href}/`)
+    );
   }
 
   return (
     <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 border-r border-zinc-200 bg-white lg:flex lg:flex-col dark:border-white/10 dark:bg-[#0b0b0b]">
-      {/* LOGO */}
-      <div className="flex h-20 items-center border-b border-zinc-200 px-6 dark:border-white/10">
+      {/* =====================================================
+          LOGO
+      ====================================================== */}
+
+      <div className="flex h-20 shrink-0 items-center border-b border-zinc-200 px-6 dark:border-white/10">
         <Link
           href="/admin"
-          className="text-xl font-extrabold tracking-tight"
+          className="group text-xl font-extrabold tracking-tight"
         >
           Booking
           <span className="text-[#D4AF37]">
             LK
           </span>
 
-          <span className="ml-2 text-xs font-medium text-zinc-400">
+          <span className="ml-2 text-xs font-medium text-zinc-400 transition-colors group-hover:text-[#D4AF37]">
             ADMIN
           </span>
         </Link>
       </div>
 
-      {/* NAVIGATION */}
+      {/* =====================================================
+          NAVIGATION
+      ====================================================== */}
+
       <nav className="flex-1 space-y-1 overflow-y-auto p-4">
         {items.map((item) => {
           const Icon = item.icon;
-
-          const active =
-            item.href === "/admin"
-              ? pathname === "/admin"
-              : pathname.startsWith(item.href);
+          const active = isActive(item.href);
 
           return (
             <Link
               key={item.href}
               href={item.href}
-              className={`group flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200 ${
+              aria-current={
+                active ? "page" : undefined
+              }
+              className={`group relative flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200 ${
                 active
-                  ? "bg-[#D4AF37]/10 text-[#B8860B] dark:text-[#F5D76E]"
+                  ? "bg-[#D4AF37]/10 text-[#B8860B] dark:bg-[#D4AF37]/10 dark:text-[#F5D76E]"
                   : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-white/5 dark:hover:text-white"
               }`}
             >
+              {/* ACTIVE INDICATOR */}
+
+              {active && (
+                <span
+                  aria-hidden="true"
+                  className="absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full bg-[#D4AF37]"
+                />
+              )}
+
+              {/* ICON */}
+
               <Icon
-                className={`h-[18px] w-[18px] transition-transform duration-200 ${
+                className={`h-[18px] w-[18px] shrink-0 transition-transform duration-200 ${
                   active
                     ? "scale-105"
                     : "group-hover:scale-105"
                 }`}
               />
 
-              <span>{item.label}</span>
+              {/* LABEL */}
+
+              <span>
+                {item.label}
+              </span>
             </Link>
           );
         })}
       </nav>
 
-      {/* LOGOUT */}
-      <div className="border-t border-zinc-200 p-4 dark:border-white/10">
+      {/* =====================================================
+          LOGOUT
+      ====================================================== */}
+
+      <div className="shrink-0 border-t border-zinc-200 p-4 dark:border-white/10">
         <button
           type="button"
           onClick={logout}
-          className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-zinc-500 transition hover:bg-red-500/10 hover:text-red-500"
+          className="group flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-zinc-500 transition-all duration-200 hover:bg-red-500/10 hover:text-red-500 dark:text-zinc-400"
         >
-          <LogOut className="h-[18px] w-[18px]" />
+          <LogOut className="h-[18px] w-[18px] transition-transform duration-200 group-hover:-translate-x-0.5" />
 
-          Logout
+          <span>Logout</span>
         </button>
       </div>
     </aside>

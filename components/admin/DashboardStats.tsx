@@ -1,258 +1,108 @@
 "use client";
 
 import {
-  motion,
-} from "framer-motion";
-
-import {
-  Users,
+  ArrowUpRight,
   Building2,
-  CalendarDays,
-  WalletCards,
-  CheckCircle2,
-  Clock3,
-  XCircle,
+  CalendarCheck,
+  DollarSign,
+  Users,
 } from "lucide-react";
 
-interface DashboardStatsProps {
-  data: {
-    users: {
-      total: number;
-    };
-
-    hotels: {
-      total: number;
-    };
-
-    bookings: {
-      total: number;
-      confirmed: number;
-      pending: number;
-      cancelled: number;
-    };
-
-    revenue: {
-      total: number;
-      currency: string;
-    };
-  };
+export interface AdminStats {
+  totalUsers: number;
+  totalAdmins: number;
+  totalHotels: number;
+  totalBookings: number;
+  pendingBookings: number;
+  confirmedBookings: number;
+  cancelledBookings: number;
+  revenue: number;
 }
 
-const cards = [
-  {
-    key: "users",
-    title: "Total Users",
-    icon: Users,
-  },
-  {
-    key: "hotels",
-    title: "Total Hotels",
-    icon: Building2,
-  },
-  {
-    key: "bookings",
-    title: "Total Bookings",
-    icon: CalendarDays,
-  },
-  {
-    key: "revenue",
-    title: "Total Revenue",
-    icon: WalletCards,
-  },
-] as const;
+interface DashboardStatsProps {
+  stats: AdminStats;
+}
+
+function formatCurrency(value: number) {
+  return new Intl.NumberFormat("en-LK", {
+    style: "currency",
+    currency: "LKR",
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
+function StatCard({
+  label,
+  value,
+  description,
+  icon: Icon,
+}: {
+  label: string;
+  value: string | number;
+  description: string;
+  icon: typeof Users;
+}) {
+  return (
+    <div className="group relative overflow-hidden rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-[#D4AF37]/40 hover:shadow-xl dark:border-white/10 dark:bg-[#111]">
+      <div className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-[#D4AF37]/5 blur-2xl transition-all duration-300 group-hover:bg-[#D4AF37]/10" />
+
+      <div className="relative">
+        <div className="flex items-start justify-between">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#D4AF37]/10 text-[#B8860B] dark:text-[#F5D76E]">
+            <Icon className="h-5 w-5" />
+          </div>
+
+          <ArrowUpRight className="h-4 w-4 text-zinc-400 transition-all duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-[#D4AF37]" />
+        </div>
+
+        <p className="mt-6 text-sm font-medium text-zinc-500 dark:text-zinc-400">
+          {label}
+        </p>
+
+        <p className="mt-2 text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-white">
+          {value}
+        </p>
+
+        <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-500">
+          {description}
+        </p>
+      </div>
+    </div>
+  );
+}
 
 export default function DashboardStats({
-  data,
+  stats,
 }: DashboardStatsProps) {
-  const values = {
-    users: data.users.total,
-
-    hotels: data.hotels.total,
-
-    bookings: data.bookings.total,
-
-    revenue: `LKR ${Number(
-      data.revenue.total
-    ).toLocaleString()}`,
-  };
-
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-      {cards.map(
-        (
-          card,
-          index
-        ) => {
-          const Icon = card.icon;
+    <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <StatCard
+        label="Total users"
+        value={stats.totalUsers}
+        description="Registered customers"
+        icon={Users}
+      />
 
-          return (
-            <motion.div
-              key={card.key}
-              initial={{
-                opacity: 0,
-                y: 18,
-              }}
-              animate={{
-                opacity: 1,
-                y: 0,
-              }}
-              transition={{
-                duration: 0.4,
-                delay:
-                  index * 0.08,
-              }}
-              className="
-                group
-                relative
-                overflow-hidden
-                rounded-3xl
-                border
-                border-zinc-200
-                bg-white
-                p-5
-                shadow-sm
-                transition
-                hover:-translate-y-1
-                hover:shadow-xl
-                dark:border-white/10
-                dark:bg-[#111111]
-              "
-            >
-              <div
-                className="
-                  absolute
-                  -right-10
-                  -top-10
-                  h-28
-                  w-28
-                  rounded-full
-                  bg-[#D4AF37]/10
-                  blur-2xl
-                "
-              />
+      <StatCard
+        label="Total hotels"
+        value={stats.totalHotels}
+        description="Properties on BookingLK"
+        icon={Building2}
+      />
 
-              <div className="relative">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                      {card.title}
-                    </p>
+      <StatCard
+        label="Total bookings"
+        value={stats.totalBookings}
+        description={`${stats.confirmedBookings} confirmed reservations`}
+        icon={CalendarCheck}
+      />
 
-                    <p className="mt-3 text-2xl font-bold tracking-tight">
-                      {values[card.key]}
-                    </p>
-                  </div>
-
-                  <div
-                    className="
-                      flex
-                      h-11
-                      w-11
-                      items-center
-                      justify-center
-                      rounded-2xl
-                      bg-[#D4AF37]/10
-                      text-[#D4AF37]
-                    "
-                  >
-                    <Icon className="h-5 w-5" />
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          );
-        }
-      )}
-
-      <motion.div
-        initial={{
-          opacity: 0,
-          y: 18,
-        }}
-        animate={{
-          opacity: 1,
-          y: 0,
-        }}
-        transition={{
-          duration: 0.4,
-          delay: 0.32,
-        }}
-        className="rounded-3xl border border-emerald-500/10 bg-white p-5 dark:bg-[#111111]"
-      >
-        <div className="flex items-center gap-3">
-          <CheckCircle2 className="h-5 w-5 text-emerald-500" />
-
-          <div>
-            <p className="text-xs text-zinc-500">
-              Confirmed
-            </p>
-
-            <p className="text-xl font-bold">
-              {data.bookings.confirmed}
-            </p>
-          </div>
-        </div>
-      </motion.div>
-
-      <motion.div
-        initial={{
-          opacity: 0,
-          y: 18,
-        }}
-        animate={{
-          opacity: 1,
-          y: 0,
-        }}
-        transition={{
-          duration: 0.4,
-          delay: 0.4,
-        }}
-        className="rounded-3xl border border-amber-500/10 bg-white p-5 dark:bg-[#111111]"
-      >
-        <div className="flex items-center gap-3">
-          <Clock3 className="h-5 w-5 text-amber-500" />
-
-          <div>
-            <p className="text-xs text-zinc-500">
-              Pending
-            </p>
-
-            <p className="text-xl font-bold">
-              {data.bookings.pending}
-            </p>
-          </div>
-        </div>
-      </motion.div>
-
-      <motion.div
-        initial={{
-          opacity: 0,
-          y: 18,
-        }}
-        animate={{
-          opacity: 1,
-          y: 0,
-        }}
-        transition={{
-          duration: 0.4,
-          delay: 0.48,
-        }}
-        className="rounded-3xl border border-red-500/10 bg-white p-5 dark:bg-[#111111]"
-      >
-        <div className="flex items-center gap-3">
-          <XCircle className="h-5 w-5 text-red-500" />
-
-          <div>
-            <p className="text-xs text-zinc-500">
-              Cancelled
-            </p>
-
-            <p className="text-xl font-bold">
-              {data.bookings.cancelled}
-            </p>
-          </div>
-        </div>
-      </motion.div>
-    </div>
+      <StatCard
+        label="Platform revenue"
+        value={formatCurrency(stats.revenue)}
+        description="Revenue from confirmed bookings"
+        icon={DollarSign}
+      />
+    </section>
   );
 }

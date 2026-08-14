@@ -1,9 +1,11 @@
+
 "use client";
 
 import { FormEvent, useState } from "react";
 import { motion } from "framer-motion";
 import {
   CheckCircle2,
+  ChevronDown,
   Loader2,
   Mail,
   MessageSquare,
@@ -25,7 +27,9 @@ export default function ContactForm() {
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(
+    event: FormEvent<HTMLFormElement>
+  ) {
     event.preventDefault();
 
     setLoading(true);
@@ -43,8 +47,14 @@ export default function ContactForm() {
   if (sent) {
     return (
       <motion.div
-        initial={{ opacity: 0, scale: 0.97 }}
-        animate={{ opacity: 1, scale: 1 }}
+        initial={{
+          opacity: 0,
+          scale: 0.97,
+        }}
+        animate={{
+          opacity: 1,
+          scale: 1,
+        }}
         className="flex min-h-[520px] flex-col items-center justify-center rounded-[32px] border border-[#D4AF37]/20 bg-white p-8 text-center shadow-xl dark:border-white/10 dark:bg-[#0c0c0c]"
       >
         <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#D4AF37]/10">
@@ -56,8 +66,9 @@ export default function ContactForm() {
         </h2>
 
         <p className="mt-3 max-w-md text-sm leading-6 text-zinc-500 dark:text-zinc-400">
-          Thanks for reaching out. Our team will review your
-          message and get back to you as soon as possible.
+          Thanks for reaching out. Our team will review
+          your message and get back to you as soon as
+          possible.
         </p>
 
         <button
@@ -73,12 +84,26 @@ export default function ContactForm() {
 
   return (
     <motion.div
-      initial={{ opacity: 0, x: 25 }}
-      whileInView={{ opacity: 1, x: 0 }}
-      viewport={{ once: true }}
-      transition={{ duration: 0.7 }}
+      initial={{
+        opacity: 0,
+        x: 25,
+      }}
+      whileInView={{
+        opacity: 1,
+        x: 0,
+      }}
+      viewport={{
+        once: true,
+      }}
+      transition={{
+        duration: 0.7,
+      }}
       className="rounded-[32px] border border-zinc-200 bg-white p-6 shadow-xl dark:border-white/[0.08] dark:bg-[#0c0c0c] sm:p-8"
     >
+      {/* =====================================================
+          HEADER
+      ====================================================== */}
+
       <div className="mb-8">
         <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#B8860B] dark:text-[#F5D76E]">
           Send a message
@@ -93,8 +118,21 @@ export default function ContactForm() {
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-5">
+      {/* =====================================================
+          FORM
+      ====================================================== */}
+
+      <form
+        onSubmit={handleSubmit}
+        className="space-y-5"
+      >
+        {/* ===================================================
+            NAME + EMAIL
+        ==================================================== */}
+
         <div className="grid gap-5 sm:grid-cols-2">
+          {/* NAME */}
+
           <div>
             <label className="mb-2 block text-xs font-semibold">
               Full name
@@ -108,10 +146,12 @@ export default function ContactForm() {
                 name="name"
                 type="text"
                 placeholder="Your name"
-                className="h-12 w-full rounded-xl border border-zinc-200 bg-zinc-50 pl-10 pr-4 text-sm outline-none transition placeholder:text-zinc-400 focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/10 dark:border-white/10 dark:bg-white/[0.03]"
+                className="h-12 w-full rounded-xl border border-zinc-200 bg-zinc-50 pl-10 pr-4 text-sm text-zinc-900 outline-none transition placeholder:text-zinc-400 focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/10 dark:border-white/10 dark:bg-white/[0.03] dark:text-white"
               />
             </div>
           </div>
+
+          {/* EMAIL */}
 
           <div>
             <label className="mb-2 block text-xs font-semibold">
@@ -126,34 +166,67 @@ export default function ContactForm() {
                 name="email"
                 type="email"
                 placeholder="you@example.com"
-                className="h-12 w-full rounded-xl border border-zinc-200 bg-zinc-50 pl-10 pr-4 text-sm outline-none transition placeholder:text-zinc-400 focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/10 dark:border-white/10 dark:bg-white/[0.03]"
+                className="h-12 w-full rounded-xl border border-zinc-200 bg-zinc-50 pl-10 pr-4 text-sm text-zinc-900 outline-none transition placeholder:text-zinc-400 focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/10 dark:border-white/10 dark:bg-white/[0.03] dark:text-white"
               />
             </div>
           </div>
         </div>
+
+        {/* ===================================================
+            SUBJECT
+        ==================================================== */}
 
         <div>
           <label className="mb-2 block text-xs font-semibold">
             Subject
           </label>
 
-          <select
-            name="subject"
-            defaultValue=""
-            className="h-12 w-full appearance-none rounded-xl border border-zinc-200 bg-zinc-50 px-4 text-sm outline-none transition focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/10 dark:border-white/10 dark:bg-white/[0.03]"
-            required
-          >
-            <option value="" disabled>
-              Select a subject
-            </option>
+          <div className="relative">
+            <select
+              name="subject"
+              defaultValue=""
+              required
+              className="h-12 w-full cursor-pointer appearance-none rounded-xl border border-zinc-200 bg-zinc-50 px-4 pr-11 text-sm font-medium text-zinc-900 outline-none transition focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/10 dark:border-white/10 dark:bg-white/[0.03] dark:text-white"
+            >
+              {/* PLACEHOLDER */}
 
-            {subjects.map((subject) => (
-              <option key={subject} value={subject}>
-                {subject}
+              <option
+                value=""
+                disabled
+                className="bg-white text-zinc-500 dark:bg-[#111111] dark:text-zinc-400"
+              >
+                Select a subject
               </option>
-            ))}
-          </select>
+
+              {/* SUBJECT OPTIONS */}
+
+              {subjects.map((subject) => (
+                <option
+                  key={subject}
+                  value={subject}
+                  className="bg-white text-zinc-900 dark:bg-[#111111] dark:text-white"
+                >
+                  {subject}
+                </option>
+              ))}
+            </select>
+
+            {/* CUSTOM ARROW */}
+
+            <div className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2">
+              <ChevronDown className="h-4 w-4 text-zinc-400 transition-colors" />
+            </div>
+          </div>
+
+          <p className="mt-2 text-[11px] text-zinc-400">
+            Choose the topic that best matches your
+            message.
+          </p>
         </div>
+
+        {/* ===================================================
+            MESSAGE
+        ==================================================== */}
 
         <div>
           <label className="mb-2 block text-xs font-semibold">
@@ -168,10 +241,14 @@ export default function ContactForm() {
               name="message"
               rows={6}
               placeholder="How can we help?"
-              className="w-full resize-none rounded-xl border border-zinc-200 bg-zinc-50 py-3.5 pl-10 pr-4 text-sm outline-none transition placeholder:text-zinc-400 focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/10 dark:border-white/10 dark:bg-white/[0.03]"
+              className="w-full resize-none rounded-xl border border-zinc-200 bg-zinc-50 py-3.5 pl-10 pr-4 text-sm text-zinc-900 outline-none transition placeholder:text-zinc-400 focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/10 dark:border-white/10 dark:bg-white/[0.03] dark:text-white"
             />
           </div>
         </div>
+
+        {/* ===================================================
+            SUBMIT
+        ==================================================== */}
 
         <button
           disabled={loading}
@@ -194,3 +271,4 @@ export default function ContactForm() {
     </motion.div>
   );
 }
+

@@ -1,167 +1,80 @@
 "use client";
-import Link from "next/link";
-import { useEffect, useState } from "react";
 
+import { useCallback, useEffect, useState } from "react";
 import {
-  AlertCircle,
-  ArrowUpRight,
-  Building2,
-  CalendarCheck,
-  CheckCircle2,
-  Clock3,
-  Hotel,
-  Loader2,
-  Users,
-  Wallet,
+  RefreshCw,
   XCircle,
 } from "lucide-react";
 
-interface DashboardStats {
-  totalUsers: number;
-  totalHotels: number;
-  totalBookings: number;
-  pendingBookings: number;
-  confirmedBookings: number;
-  cancelledBookings: number;
-  revenue: number;
-}
+import DashboardStats, {
+  AdminStats,
+} from "@/components/admin/DashboardStats";
 
-interface RecentBooking {
-  _id: string;
-  bookingReference: string;
+import BookingOverview from "@/components/admin/BookingOverview";
 
-  guest?: {
-    firstName?: string;
-    lastName?: string;
-    email?: string;
-  };
+import DashboardSkeleton from "@/components/admin/DashboardSkeleton";
 
-  hotelId?: {
-    _id?: string;
-    name?: string;
-    location?: {
-      city?: string;
-    };
-  };
+import RecentBookings, {
+  RecentBooking,
+} from "@/components/admin/RecentBookings";
 
-  checkIn: string;
-  checkOut: string;
+import QuickActions from "@/components/admin/QuickActions";
 
-  total: number;
-  currency: string;
+const EMPTY_STATS: AdminStats = {
+  totalUsers: 0,
+  totalAdmins: 0,
+  totalHotels: 0,
+  totalBookings: 0,
+  pendingBookings: 0,
+  confirmedBookings: 0,
+  cancelledBookings: 0,
+  revenue: 0,
+};
 
-  status:
-    | "PENDING"
-    | "CONFIRMED"
-    | "CANCELLED"
-    | "COMPLETED";
-
-  paymentStatus:
-    | "PENDING"
-    | "PAID"
-    | "FAILED"
-    | "REFUNDED";
-
-  createdAt: string;
-}
-
-interface DashboardResponse {
-  success: boolean;
-
+interface ApiResponse {
+  success?: boolean;
   message?: string;
 
   data?: {
-    stats: DashboardStats;
-    recentBookings: RecentBooking[];
+    stats?: Partial<AdminStats>;
+    recentBookings?: RecentBooking[];
   };
 }
 
-function formatCurrency(
-  value: number
-) {
-  return new Intl.NumberFormat(
-    "en-LK",
-    {
-      style: "currency",
-      currency: "LKR",
-      maximumFractionDigits: 0,
-    }
-  ).format(value);
-}
-
-function formatDate(
-  value: string
-) {
-  return new Intl.DateTimeFormat(
-    "en-LK",
-    {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    }
-  ).format(new Date(value));
-}
-
-function statusClasses(
-  status: string
-) {
-  switch (status) {
-    case "CONFIRMED":
-      return "bg-emerald-500/10 text-emerald-400 border-emerald-500/20";
-
-    case "COMPLETED":
-      return "bg-blue-500/10 text-blue-400 border-blue-500/20";
-
-    case "CANCELLED":
-      return "bg-red-500/10 text-red-400 border-red-500/20";
-
-    default:
-      return "bg-amber-500/10 text-amber-400 border-amber-500/20";
+function safeNumber(
+  value: unknown
+): number {
+  if (
+    typeof value === "number" &&
+    Number.isFinite(value)
+  ) {
+    return value;
   }
-}
 
-function StatCard({
-  title,
-  value,
-  subtitle,
-  icon: Icon,
-}: {
-  title: string;
-  value: string | number;
-  subtitle: string;
-  icon: typeof Users;
-}) {
-  return (
-    <div className="group rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg dark:border-white/10 dark:bg-[#111]">
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
-            {title}
-          </p>
+  if (
+    typeof value === "string" &&
+    value.trim() !== ""
+  ) {
+    const parsed = Number(
+      value.replace(/,/g, "")
+    );
 
-          <h3 className="mt-3 text-2xl font-bold tracking-tight text-zinc-900 dark:text-white">
-            {value}
-          </h3>
+    if (Number.isFinite(parsed)) {
+      return parsed;
+    }
+  }
 
-          <p className="mt-2 text-xs text-zinc-500">
-            {subtitle}
-          </p>
-        </div>
-
-        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#D4AF37]/10 text-[#D4AF37] transition-transform duration-300 group-hover:scale-110">
-          <Icon className="h-5 w-5" />
-        </div>
-      </div>
-    </div>
-  );
+  return 0;
 }
 
 export default function AdminDashboardPage() {
   const [stats, setStats] =
-    useState<DashboardStats | null>(null);
+    useState<AdminStats>(EMPTY_STATS);
 
-  const [recentBookings, setRecentBookings] =
-    useState<RecentBooking[]>([]);
+  const [
+    recentBookings,
+    setRecentBookings,
+  ] = useState<RecentBooking[]>([]);
 
   const [loading, setLoading] =
     useState(true);
@@ -169,34 +82,37 @@ export default function AdminDashboardPage() {
   const [error, setError] =
     useState("");
 
-  useEffect(() => {
-    let active = true;
-
-    async function loadDashboard() {
+  const loadDashboard =
+    useCallback(async () => {
       try {
         setLoading(true);
         setError("");
 
         const response = await fetch(
-          "/api/admin/dashboard",
+          "/api/admin/stats",
           {
             method: "GET",
-            cache: "no-store",
             credentials: "include",
+            cache: "no-store",
+
+            headers: {
+              Accept:
+                "application/json",
+            },
           }
         );
 
         const text =
           await response.text();
 
-        let result: DashboardResponse =
-          {
-            success: false,
-          };
+        let result: ApiResponse = {
+          success: false,
+        };
 
         if (text.trim()) {
           try {
-            result = JSON.parse(text);
+            result =
+              JSON.parse(text);
           } catch {
             throw new Error(
               "Server returned invalid JSON."
@@ -211,22 +127,67 @@ export default function AdminDashboardPage() {
           );
         }
 
-        if (
-          !result.success ||
-          !result.data
-        ) {
+        if (!result.success) {
           throw new Error(
             result.message ||
               "Unable to load dashboard."
           );
         }
 
-        if (!active) return;
+        const data =
+          result.data ?? {};
 
-        setStats(result.data.stats);
+        const apiStats =
+          data.stats ?? {};
+
+        const normalizedStats: AdminStats =
+          {
+            totalUsers: safeNumber(
+              apiStats.totalUsers
+            ),
+
+            totalAdmins: safeNumber(
+              apiStats.totalAdmins
+            ),
+
+            totalHotels: safeNumber(
+              apiStats.totalHotels
+            ),
+
+            totalBookings: safeNumber(
+              apiStats.totalBookings
+            ),
+
+            pendingBookings:
+              safeNumber(
+                apiStats.pendingBookings
+              ),
+
+            confirmedBookings:
+              safeNumber(
+                apiStats.confirmedBookings
+              ),
+
+            cancelledBookings:
+              safeNumber(
+                apiStats.cancelledBookings
+              ),
+
+            revenue: safeNumber(
+              apiStats.revenue
+            ),
+          };
+
+        setStats(
+          normalizedStats
+        );
 
         setRecentBookings(
-          result.data.recentBookings || []
+          Array.isArray(
+            data.recentBookings
+          )
+            ? data.recentBookings
+            : []
         );
       } catch (error) {
         console.error(
@@ -234,360 +195,163 @@ export default function AdminDashboardPage() {
           error
         );
 
-        if (!active) return;
-
         setError(
           error instanceof Error
             ? error.message
             : "Unable to load dashboard."
         );
       } finally {
-        if (active) {
-          setLoading(false);
-        }
+        setLoading(false);
       }
-    }
+    }, []);
 
+  useEffect(() => {
     loadDashboard();
+  }, [loadDashboard]);
 
-    return () => {
-      active = false;
-    };
-  }, []);
+  // --------------------------------------------------
+  // LOADING
+  // --------------------------------------------------
 
   if (loading) {
-    return (
-      <div className="flex min-h-[calc(100vh-5rem)] items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
-          <Loader2 className="h-7 w-7 animate-spin text-[#D4AF37]" />
-
-          <p className="text-sm text-zinc-500">
-            Loading dashboard...
-          </p>
-        </div>
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
+
+  // --------------------------------------------------
+  // ERROR
+  // --------------------------------------------------
 
   if (error) {
     return (
-      <div className="p-6 lg:p-8">
-        <div className="mx-auto flex max-w-2xl items-center gap-4 rounded-3xl border border-red-500/20 bg-red-500/5 p-6">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-red-500/10">
-            <AlertCircle className="h-5 w-5 text-red-400" />
-          </div>
+      <main className="min-h-[calc(100vh-5rem)] bg-[#f8f8f6] px-4 py-6 dark:bg-[#080808] sm:px-6 lg:px-8 lg:py-8">
+        <div className="mx-auto max-w-3xl">
+          <div className="rounded-3xl border border-red-500/20 bg-red-500/5 p-6">
+            <div className="flex items-start gap-4">
 
-          <div>
-            <h2 className="font-semibold text-zinc-900 dark:text-white">
-              Dashboard unavailable
-            </h2>
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-red-500/10">
+                <XCircle className="h-5 w-5 text-red-500" />
+              </div>
 
-            <p className="mt-1 text-sm text-zinc-500">
-              {error}
-            </p>
+              <div className="flex-1">
+
+                <h2 className="font-bold text-zinc-900 dark:text-white">
+                  Dashboard unavailable
+                </h2>
+
+                <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                  {error}
+                </p>
+
+                <button
+                  type="button"
+                  onClick={
+                    loadDashboard
+                  }
+                  className="mt-4 inline-flex items-center gap-2 rounded-xl bg-[#D4AF37] px-4 py-2 text-sm font-semibold text-black transition hover:bg-[#E5C158]"
+                >
+                  <RefreshCw className="h-4 w-4" />
+
+                  Try again
+                </button>
+
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+      </main>
     );
   }
 
-  if (!stats) {
-    return null;
-  }
+  // --------------------------------------------------
+  // DASHBOARD
+  // --------------------------------------------------
 
   return (
-    <div className="min-h-full p-6 lg:p-8">
+    <main className="min-h-[calc(100vh-5rem)] bg-[#f8f8f6] px-4 py-6 text-zinc-900 dark:bg-[#080808] dark:text-white sm:px-6 lg:px-8 lg:py-8">
+
       <div className="mx-auto max-w-[1600px]">
+
         {/* HEADER */}
 
-        <div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-[0.25em] text-[#D4AF37]">
-              Overview
-            </p>
+        <section className="mb-8">
 
-            <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-white">
-              Dashboard
-            </h1>
+          <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
 
-            <p className="mt-2 text-sm text-zinc-500">
-              Monitor your BookingLK platform.
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-4 py-2 text-xs text-zinc-500 dark:border-white/10 dark:bg-[#111]">
-            <span className="h-2 w-2 rounded-full bg-emerald-400" />
-
-            System operational
-          </div>
-        </div>
-
-        {/* STATS */}
-
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <StatCard
-            title="Total Users"
-            value={stats.totalUsers}
-            subtitle="Registered customers"
-            icon={Users}
-          />
-
-          <StatCard
-            title="Hotels"
-            value={stats.totalHotels}
-            subtitle="Properties on platform"
-            icon={Building2}
-          />
-
-          <StatCard
-            title="Bookings"
-            value={stats.totalBookings}
-            subtitle={`${stats.confirmedBookings} confirmed`}
-            icon={CalendarCheck}
-          />
-
-          <StatCard
-            title="Revenue"
-            value={formatCurrency(
-              stats.revenue
-            )}
-            subtitle="Paid bookings"
-            icon={Wallet}
-          />
-        </div>
-
-        {/* SECONDARY STATS */}
-
-        <div className="mt-4 grid gap-4 sm:grid-cols-3">
-          <div className="rounded-3xl border border-zinc-200 bg-white p-5 dark:border-white/10 dark:bg-[#111]">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/10">
-                <Clock3 className="h-5 w-5 text-amber-400" />
-              </div>
-
-              <div>
-                <p className="text-xs text-zinc-500">
-                  Pending
-                </p>
-
-                <p className="text-xl font-bold text-zinc-900 dark:text-white">
-                  {stats.pendingBookings}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="rounded-3xl border border-zinc-200 bg-white p-5 dark:border-white/10 dark:bg-[#111]">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10">
-                <CheckCircle2 className="h-5 w-5 text-emerald-400" />
-              </div>
-
-              <div>
-                <p className="text-xs text-zinc-500">
-                  Confirmed
-                </p>
-
-                <p className="text-xl font-bold text-zinc-900 dark:text-white">
-                  {stats.confirmedBookings}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="rounded-3xl border border-zinc-200 bg-white p-5 dark:border-white/10 dark:bg-[#111]">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-500/10">
-                <XCircle className="h-5 w-5 text-red-400" />
-              </div>
-
-              <div>
-                <p className="text-xs text-zinc-500">
-                  Cancelled
-                </p>
-
-                <p className="text-xl font-bold text-zinc-900 dark:text-white">
-                  {stats.cancelledBookings}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* RECENT BOOKINGS */}
-
-        <div className="mt-8 overflow-hidden rounded-3xl border border-zinc-200 bg-white dark:border-white/10 dark:bg-[#111]">
-          <div className="flex flex-col justify-between gap-3 border-b border-zinc-200 p-5 sm:flex-row sm:items-center dark:border-white/10">
             <div>
-              <h2 className="font-bold text-zinc-900 dark:text-white">
-                Recent Bookings
-              </h2>
 
-              <p className="mt-1 text-xs text-zinc-500">
-                Latest reservations across BookingLK.
-              </p>
-            </div>
+              <div className="flex items-center gap-2">
 
-           <Link
-  href="/admin/bookings"
-  className="inline-flex items-center gap-1 text-sm font-semibold text-[#D4AF37] transition-colors hover:text-[#F5D76E]"
->
-  View all
-  <span aria-hidden="true">→</span>
-</Link>
-          </div>
+                <span className="h-2 w-2 rounded-full bg-emerald-400" />
 
-          {recentBookings.length === 0 ? (
-            <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-zinc-100 dark:bg-white/5">
-                <Hotel className="h-6 w-6 text-zinc-400" />
+                <p className="text-xs font-bold uppercase tracking-[0.25em] text-[#B8860B] dark:text-[#F5D76E]">
+                  Admin overview
+                </p>
+
               </div>
 
-              <h3 className="mt-4 font-semibold text-zinc-900 dark:text-white">
-                No bookings yet
-              </h3>
+              <h1 className="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl">
+                Dashboard
+              </h1>
 
-              <p className="mt-1 text-sm text-zinc-500">
-                New bookings will appear here.
+              <p className="mt-2 max-w-xl text-sm text-zinc-500 dark:text-zinc-400">
+                Manage and monitor your BookingLK platform from one place.
               </p>
+
             </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[850px] text-left">
-                <thead>
-                  <tr className="border-b border-zinc-200 text-xs text-zinc-500 dark:border-white/10">
-                    <th className="px-5 py-4 font-medium">
-                      Booking
-                    </th>
 
-                    <th className="px-5 py-4 font-medium">
-                      Guest
-                    </th>
+            <button
+              type="button"
+              onClick={
+                loadDashboard
+              }
+              className="inline-flex w-fit items-center gap-2 rounded-xl border border-zinc-200 bg-white px-4 py-2.5 text-sm font-medium text-zinc-600 transition hover:border-[#D4AF37]/40 hover:text-[#B8860B] dark:border-white/10 dark:bg-[#111] dark:text-zinc-300 dark:hover:text-[#F5D76E]"
+            >
 
-                    <th className="px-5 py-4 font-medium">
-                      Hotel
-                    </th>
+              <RefreshCw className="h-4 w-4" />
 
-                    <th className="px-5 py-4 font-medium">
-                      Date
-                    </th>
+              Refresh
 
-                    <th className="px-5 py-4 font-medium">
-                      Amount
-                    </th>
+            </button>
 
-                    <th className="px-5 py-4 font-medium">
-                      Status
-                    </th>
-                  </tr>
-                </thead>
+          </div>
 
-                <tbody>
-                  {recentBookings.map(
-                    (booking) => {
-                      const guestName =
-                        `${booking.guest?.firstName || ""} ${
-                          booking.guest?.lastName || ""
-                        }`.trim() ||
-                        "Guest";
+        </section>
 
-                      return (
-                        <tr
-                          key={booking._id}
-                          className="border-b border-zinc-100 transition hover:bg-zinc-50 dark:border-white/5 dark:hover:bg-white/[0.02]"
-                        >
-                          <td className="px-5 py-4">
-                            <p className="text-sm font-semibold text-zinc-900 dark:text-white">
-                              {
-                                booking.bookingReference
-                              }
-                            </p>
+        {/* REAL DATABASE STATS */}
 
-                            <p className="mt-1 text-xs text-zinc-500">
-                              {formatDate(
-                                booking.createdAt
-                              )}
-                            </p>
-                          </td>
+        <DashboardStats
+          stats={stats}
+        />
 
-                          <td className="px-5 py-4">
-                            <p className="text-sm font-medium text-zinc-900 dark:text-white">
-                              {guestName}
-                            </p>
+        {/* REAL BOOKING STATUS */}
 
-                            <p className="mt-1 text-xs text-zinc-500">
-                              {
-                                booking.guest
-                                  ?.email
-                              }
-                            </p>
-                          </td>
+        <BookingOverview
+          pendingBookings={
+            stats.pendingBookings
+          }
+          confirmedBookings={
+            stats.confirmedBookings
+          }
+          cancelledBookings={
+            stats.cancelledBookings
+          }
+        />
 
-                          <td className="px-5 py-4">
-                            <p className="text-sm font-medium text-zinc-900 dark:text-white">
-                              {
-                                booking.hotelId
-                                  ?.name
-                              }
-                            </p>
+        {/* REAL RECENT BOOKINGS */}
 
-                            <p className="mt-1 text-xs text-zinc-500">
-                              {
-                                booking.hotelId
-                                  ?.location
-                                  ?.city
-                              }
-                            </p>
-                          </td>
+        <RecentBookings
+          bookings={
+            recentBookings
+          }
+        />
 
-                          <td className="px-5 py-4">
-                            <p className="text-sm text-zinc-700 dark:text-zinc-300">
-                              {formatDate(
-                                booking.checkIn
-                              )}
-                            </p>
+        {/* QUICK ACTIONS */}
 
-                            <p className="mt-1 text-xs text-zinc-500">
-                              to{" "}
-                              {formatDate(
-                                booking.checkOut
-                              )}
-                            </p>
-                          </td>
+        <section className="mt-6">
+          <QuickActions />
+        </section>
 
-                          <td className="px-5 py-4">
-                            <p className="text-sm font-bold text-zinc-900 dark:text-white">
-                              {formatCurrency(
-                                booking.total
-                              )}
-                            </p>
-
-                            <p className="mt-1 text-xs text-zinc-500">
-                              {
-                                booking.paymentStatus
-                              }
-                            </p>
-                          </td>
-
-                          <td className="px-5 py-4">
-                            <span
-                              className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold ${statusClasses(
-                                booking.status
-                              )}`}
-                            >
-                              {booking.status}
-                            </span>
-                          </td>
-                        </tr>
-                      );
-                    }
-                  )}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
       </div>
-    </div>
+    </main>
   );
 }
