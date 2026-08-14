@@ -17,6 +17,12 @@ export async function POST(req: NextRequest) {
 
     const password = String(body.password || "");
 
+    /*
+    |--------------------------------------------------------------------------
+    | Validate input
+    |--------------------------------------------------------------------------
+    */
+
     if (!email || !password) {
       return NextResponse.json(
         {
@@ -27,7 +33,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const user = await User.findOne({ email }).select("+password");
+    /*
+    |--------------------------------------------------------------------------
+    | Find user
+    |--------------------------------------------------------------------------
+    */
+
+    const user = await User.findOne({
+      email,
+    }).select("+password");
 
     if (!user) {
       return NextResponse.json(
@@ -39,6 +53,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | Account status
+    |--------------------------------------------------------------------------
+    */
+
     if (!user.isActive) {
       return NextResponse.json(
         {
@@ -48,6 +68,34 @@ export async function POST(req: NextRequest) {
         { status: 403 }
       );
     }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Check email verification
+    |--------------------------------------------------------------------------
+    |
+    | IMPORTANT:
+    | A user MUST verify their email before login.
+    |
+    */
+
+    if (!user.isEmailVerified) {
+      return NextResponse.json(
+        {
+          success: false,
+          message:
+            "Please verify your email address before signing in.",
+          code: "EMAIL_NOT_VERIFIED",
+        },
+        { status: 403 }
+      );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Check password
+    |--------------------------------------------------------------------------
+    */
 
     const passwordMatch = await bcrypt.compare(
       password,
@@ -64,24 +112,49 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | Create JWT
+    |--------------------------------------------------------------------------
+    */
+
     const token = createToken({
       userId: user._id.toString(),
       email: user.email,
       role: user.role,
     });
 
-    const response = NextResponse.json({
-      success: true,
-      message: "Login successful.",
-      data: {
-        id: user._id.toString(),
-        firstName: user.firstName,
-        lastName: user.lastName,
-        email: user.email,
-        phone: user.phone ?? "",
-        role: user.role,
+    /*
+    |--------------------------------------------------------------------------
+    | Response
+    |--------------------------------------------------------------------------
+    */
+
+    const response = NextResponse.json(
+      {
+        success: true,
+        message: "Login successful.",
+        data: {
+          id: user._id.toString(),
+
+          firstName: user.firstName,
+
+          lastName: user.lastName,
+
+          email: user.email,
+
+          phone: user.phone ?? "",
+
+          role: user.role,
+
+          isEmailVerified:
+            user.isEmailVerified,
+        },
       },
-    });
+      {
+        status: 200,
+      }
+    );
 
     /*
     |--------------------------------------------------------------------------
@@ -91,24 +164,37 @@ export async function POST(req: NextRequest) {
 
     response.cookies.set({
       name: "bookinglk_token",
+
       value: token,
+
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+
+      secure:
+        process.env.NODE_ENV === "production",
+
       sameSite: "lax",
+
       path: "/",
+
       maxAge: 60 * 60 * 24 * 7,
     });
 
     return response;
   } catch (error) {
-    console.error("LOGIN_ERROR:", error);
+    console.error(
+      "LOGIN_ERROR:",
+      error
+    );
 
     return NextResponse.json(
       {
         success: false,
-        message: "Something went wrong while logging in.",
+        message:
+          "Something went wrong while logging in.",
       },
-      { status: 500 }
+      {
+        status: 500,
+      }
     );
   }
 }

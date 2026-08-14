@@ -1,14 +1,8 @@
 import mongoose, {
-  Schema,
   Document,
   Model,
+  Schema,
 } from "mongoose";
-
-/*
-|--------------------------------------------------------------------------
-| User Roles
-|--------------------------------------------------------------------------
-*/
 
 export type UserRole =
   | "USER"
@@ -17,22 +11,16 @@ export type UserRole =
   | "ADMIN"
   | "SUPER_ADMIN";
 
-/*
-|--------------------------------------------------------------------------
-| User Interface
-|--------------------------------------------------------------------------
-*/
-
 export interface IUser extends Document {
   firstName: string;
   lastName: string;
   email: string;
   password: string;
-  phone?: string;
+  phone: string;
 
   role: UserRole;
 
-  avatar?: string | null;
+  avatar: string | null;
 
   isActive: boolean;
   isEmailVerified: boolean;
@@ -41,18 +29,13 @@ export interface IUser extends Document {
   updatedAt: Date;
 }
 
-/*
-|--------------------------------------------------------------------------
-| User Schema
-|--------------------------------------------------------------------------
-*/
-
 const UserSchema = new Schema<IUser>(
   {
     firstName: {
       type: String,
       required: true,
       trim: true,
+      minlength: 2,
       maxlength: 50,
     },
 
@@ -60,6 +43,7 @@ const UserSchema = new Schema<IUser>(
       type: String,
       required: true,
       trim: true,
+      minlength: 2,
       maxlength: 50,
     },
 
@@ -111,6 +95,7 @@ const UserSchema = new Schema<IUser>(
     isEmailVerified: {
       type: Boolean,
       default: false,
+      index: true,
     },
   },
   {
@@ -118,24 +103,9 @@ const UserSchema = new Schema<IUser>(
   }
 );
 
-/*
-|--------------------------------------------------------------------------
-| Prevent model overwrite during Next.js hot reload
-|--------------------------------------------------------------------------
-*/
-
 const User: Model<IUser> =
   mongoose.models.User ||
-  mongoose.model<IUser>(
-    "User",
-    UserSchema
-  );
-
-/*
-
-| Exports
-
-*/
+  mongoose.model<IUser>("User", UserSchema);
 
 export { User };
 

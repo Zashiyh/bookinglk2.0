@@ -3,40 +3,62 @@ import bcrypt from "bcryptjs";
 
 import connectDB from "@/lib/db/mongoose";
 import { User } from "@/models/User";
+import { EmailVerification } from "@/models/EmailVerification";
+import { sendVerificationEmail } from "@/lib/email/sendVerificationEmail";
 
 interface RegisterBody {
-  firstName: string;
-  lastName: string;
-  email: string;
-  password: string;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  password?: string;
   phone?: string;
+  resend?: boolean;
+}
+
+function generateVerificationCode(): string {
+  return Math.floor(
+    100000 + Math.random() * 900000
+  ).toString();
 }
 
 export async function POST(req: NextRequest) {
   try {
     await connectDB();
 
-    const body =
-      (await req.json()) as RegisterBody;
+    const body = (await req.json()) as RegisterBody;
 
-    const {
-      firstName,
-      lastName,
-      email,
-      password,
-      phone,
-    } = body;
+    const firstName =
+      typeof body.firstName === "string"
+        ? body.firstName.trim()
+        : "";
 
-    // -----------------------------
-    // Required fields
-    // -----------------------------
+    const lastName =
+      typeof body.lastName === "string"
+        ? body.lastName.trim()
+        : "";
 
-    if (
-      typeof firstName !== "string" ||
-      typeof lastName !== "string" ||
-      typeof email !== "string" ||
-      typeof password !== "string"
-    ) {
+    const email =
+      typeof body.email === "string"
+        ? body.email.trim().toLowerCase()
+        : "";
+
+    const password =
+      typeof body.password === "string"
+        ? body.password
+        : "";
+
+    const phone =
+      typeof body.phone === "string"
+        ? body.phone.trim()
+        : "";
+
+    const isResend = body.resend === true;
+
+    // ---------------------------------------------------------
+    // VALIDATION
+    // ---------------------------------------------------------
+
+    if (!firstName || !lastName || !email || !password) {
       return NextResponse.json(
         {
           success: false,
@@ -47,24 +69,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // -----------------------------
-    // Clean values
-    // -----------------------------
-
-    const cleanFirstName =
-      firstName.trim();
-
-    const cleanLastName =
-      lastName.trim();
-
-    const normalizedEmail =
-      email.trim().toLowerCase();
-
-    // -----------------------------
-    // Validate name
-    // -----------------------------
-
-    if (cleanFirstName.length < 2) {
+    if (firstName.length < 2) {
       return NextResponse.json(
         {
           success: false,
@@ -75,7 +80,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (cleanLastName.length < 2) {
+    if (lastName.length < 2) {
       return NextResponse.json(
         {
           success: false,
@@ -86,27 +91,18 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // -----------------------------
-    // Validate email
-    // -----------------------------
-
     const emailRegex =
       /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-    if (!emailRegex.test(normalizedEmail)) {
+    if (!emailRegex.test(email)) {
       return NextResponse.json(
         {
           success: false,
-          message:
-            "Please enter a valid email address.",
+          message: "Please enter a valid email address.",
         },
         { status: 400 }
       );
     }
-
-    // -----------------------------
-    // Validate password
-    // -----------------------------
 
     if (password.length < 8) {
       return NextResponse.json(
@@ -119,69 +115,119 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // -----------------------------
-    // Check existing user
-    // -----------------------------
+    // ---------------------------------------------------------
+    // CHECK REAL USER
+    // ---------------------------------------------------------
 
-    const existingUser =
-      await User.findOne({
-        email: normalizedEmail,
-      });
+    const existingUser = await User.findOne({
+      email,
+    });
 
     if (existingUser) {
       return NextResponse.json(
         {
           success: false,
           message:
-            "An account with this email already exists.",
+            "An account with this email already exists. Please log in.",
         },
         { status: 409 }
       );
     }
 
-    // -----------------------------
-    // Hash password
-    // -----------------------------
+    // ---------------------------------------------------------
+    // REMOVE OLD OTP
+    // ---------------------------------------------------------
 
-    const hashedPassword =
-      await bcrypt.hash(password, 12);
-
-    // -----------------------------
-    // Create user
-    // -----------------------------
-
-    const user = await User.create({
-      firstName: cleanFirstName,
-      lastName: cleanLastName,
-      email: normalizedEmail,
-      password: hashedPassword,
-      phone:
-        typeof phone === "string"
-          ? phone.trim()
-          : "",
-      role: "USER",
-      isActive: true,
+    await EmailVerification.deleteMany({
+      email,
     });
 
-    // -----------------------------
-    // Response
-    // -----------------------------
+    // ---------------------------------------------------------
+    // HASH PASSWORD
+    // ---------------------------------------------------------
+
+    const hashedPassword = await bcrypt.hash(
+      password,
+      12
+    );
+
+    // ---------------------------------------------------------
+    // GENERATE OTP
+    // ---------------------------------------------------------
+
+    const code = generateVerificationCode();
+
+    const expiresAt = new Date(
+      Date.now() + 10 * 60 * 1000
+    );
+
+    // ---------------------------------------------------------
+    // SAVE PENDING REGISTRATION
+    // ---------------------------------------------------------
+
+    await EmailVerification.create({
+      email,
+      firstName,
+      lastName,
+      password: hashedPassword,
+      phone,
+      code,
+      expiresAt,
+      attempts: 0,
+    });
+
+    // ---------------------------------------------------------
+    // SEND EMAIL
+    // ---------------------------------------------------------
+
+    try {
+      const mailResult =
+        await sendVerificationEmail({
+          email,
+          firstName,
+          code,
+        });
+
+      console.log(
+        "BOOKINGLK VERIFICATION EMAIL:",
+        mailResult.messageId
+      );
+    } catch (emailError) {
+      console.error(
+        "BOOKINGLK SMTP ERROR:",
+        emailError
+      );
+
+      await EmailVerification.deleteMany({
+        email,
+      });
+
+      return NextResponse.json(
+        {
+          success: false,
+          message:
+            "Verification email could not be sent. Please check your Gmail configuration.",
+        },
+        { status: 500 }
+      );
+    }
+
+    // ---------------------------------------------------------
+    // SUCCESS
+    // ---------------------------------------------------------
 
     return NextResponse.json(
       {
         success: true,
-        message:
-          "Account created successfully.",
+        message: isResend
+          ? "A new verification code has been sent to your email."
+          : "Verification code sent to your email.",
         data: {
-          id: user._id.toString(),
-          firstName: user.firstName,
-          lastName: user.lastName,
-          email: user.email,
-          phone: user.phone,
-          role: user.role,
+          email,
+          expiresIn: 600,
         },
       },
-      { status: 201 }
+      { status: 200 }
     );
   } catch (error) {
     console.error(
@@ -193,7 +239,7 @@ export async function POST(req: NextRequest) {
       {
         success: false,
         message:
-          "Something went wrong while creating the account.",
+          "Something went wrong while creating your account.",
       },
       { status: 500 }
     );
