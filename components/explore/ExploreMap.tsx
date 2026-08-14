@@ -28,10 +28,6 @@ import {
 export interface ExploreMapHotel {
   _id: string;
 
-  /*
-   * IMPORTANT:
-   * Hotel details route uses [slug], not [id].
-   */
   slug: string;
 
   name: string;
@@ -85,8 +81,7 @@ const createHotelIcon = (
   active: boolean
 ) => {
   return L.divIcon({
-    className:
-      "bookinglk-hotel-marker",
+    className: "bookinglk-hotel-marker",
 
     html: `
       <div
@@ -97,23 +92,11 @@ const createHotelIcon = (
           display:flex;
           align-items:center;
           justify-content:center;
-          background:${
-            active
-              ? "#F5D76E"
-              : "#D4AF37"
-          };
+          background:${active ? "#F5D76E" : "#D4AF37"};
           color:#000;
-          border:3px solid ${
-            active
-              ? "#000"
-              : "#fff"
-          };
+          border:3px solid ${active ? "#000" : "#fff"};
           box-shadow:0 6px 20px rgba(0,0,0,.28);
-          transform:${
-            active
-              ? "scale(1.12)"
-              : "scale(1)"
-          };
+          transform:${active ? "scale(1.12)" : "scale(1)"};
           transition:all .2s ease;
         "
       >
@@ -169,11 +152,9 @@ function MapController({
       return;
     }
 
-    const longitude =
-      coordinates[0];
+    const longitude = coordinates[0];
 
-    const latitude =
-      coordinates[1];
+    const latitude = coordinates[1];
 
     if (
       !Number.isFinite(latitude) ||
@@ -201,7 +182,7 @@ function MapController({
 }
 
 /* =========================================================
-   MAP COMPONENT
+   MAIN MAP COMPONENT
 ========================================================= */
 
 export default function ExploreMap({
@@ -211,12 +192,28 @@ export default function ExploreMap({
 }: ExploreMapProps) {
   const router = useRouter();
 
+  /* =======================================================
+     ACTIVE HOTEL
+  ======================================================= */
+
   const [
     activeHotelId,
     setActiveHotelId,
   ] = useState<string | null>(
     selectedHotelId
   );
+
+  /* =======================================================
+     MAP STYLE
+     
+     false = Default map
+     true  = Satellite map
+  ======================================================= */
+
+  const [
+    satelliteMode,
+    setSatelliteMode,
+  ] = useState(false);
 
   /* =======================================================
      SYNC PARENT SELECTION
@@ -237,13 +234,6 @@ export default function ExploreMap({
   const validHotels = useMemo(() => {
     return hotels.filter(
       (hotel) => {
-        /*
-         * A hotel must have:
-         * - _id
-         * - slug
-         * - valid coordinates
-         */
-
         if (
           !hotel._id ||
           !hotel.slug
@@ -322,22 +312,6 @@ export default function ExploreMap({
   const handleViewHotel = (
     hotel: ExploreMapHotel
   ) => {
-    /*
-     * IMPORTANT:
-     *
-     * Details page:
-     *
-     * /hotels/[slug]
-     *
-     * Therefore DO NOT use:
-     *
-     * /hotels/${hotel._id}
-     *
-     * Use:
-     *
-     * /hotels/${hotel.slug}
-     */
-
     const slug =
       hotel.slug?.trim();
 
@@ -350,17 +324,9 @@ export default function ExploreMap({
       return;
     }
 
-    /*
-     * Keep parent selection synced
-     */
-
     onHotelSelect?.(
       hotel
     );
-
-    /*
-     * Navigate using slug.
-     */
 
     router.push(
       `/hotels/${encodeURIComponent(
@@ -370,7 +336,7 @@ export default function ExploreMap({
   };
 
   /* =======================================================
-     CLEAR
+     CLEAR SELECTION
   ======================================================= */
 
   const clearSelection = () => {
@@ -424,13 +390,41 @@ export default function ExploreMap({
         className="h-[500px] w-full"
       >
         {/* =================================================
-            OPEN STREET MAP
+            DEFAULT MAP
         ================================================= */}
 
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
+        {!satelliteMode && (
+          <TileLayer
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            maxZoom={19}
+          />
+        )}
+
+        {/* =================================================
+            SATELLITE MAP
+        ================================================= */}
+
+        {satelliteMode && (
+          <>
+            {/* SATELLITE IMAGERY */}
+
+            <TileLayer
+              attribution="Tiles &copy; Esri"
+              url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+              maxZoom={19}
+            />
+
+            {/* LOCATION / PLACE LABELS */}
+
+            <TileLayer
+              attribution="Labels &copy; Esri"
+              url="https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}"
+              maxZoom={19}
+              opacity={1}
+            />
+          </>
+        )}
 
         {/* =================================================
             MAP CONTROLLER
@@ -456,8 +450,7 @@ export default function ExploreMap({
 
             if (
               !coordinates ||
-              coordinates.length !==
-                2
+              coordinates.length !== 2
             ) {
               return null;
             }
@@ -498,8 +491,7 @@ export default function ExploreMap({
                     {hotel.images?.[0] && (
                       <img
                         src={
-                          hotel
-                            .images[0]
+                          hotel.images[0]
                         }
                         alt={
                           hotel.name
@@ -590,13 +582,65 @@ export default function ExploreMap({
           RESULT COUNT
       ====================================================== */}
 
-      <div className="pointer-events-none absolute left-5 top-5 z-[1000] rounded-full border border-black/10 bg-white/95 px-4 py-2 text-xs font-black text-zinc-800 shadow-xl backdrop-blur-xl dark:border-white/10 dark:bg-[#111]/95 dark:text-white">
+      <div className="pointer-events-none absolute left-4 top-4 z-[1000] rounded-full border border-black/10 bg-white/95 px-3 py-2 text-[10px] font-black text-zinc-800 shadow-xl backdrop-blur-xl dark:border-white/10 dark:bg-[#111]/95 dark:text-white sm:left-5 sm:top-5 sm:px-4 sm:text-xs">
         {validHotels.length}{" "}
         {validHotels.length ===
         1
           ? "stay"
           : "stays"}{" "}
         on map
+      </div>
+
+      {/* =====================================================
+          MAP STYLE TOGGLE
+      ====================================================== */}
+
+      <div className="absolute right-4 top-4 z-[1000] sm:right-5 sm:top-5">
+        <button
+          type="button"
+          onClick={() =>
+            setSatelliteMode(
+              (prev) => !prev
+            )
+          }
+          aria-label={
+            satelliteMode
+              ? "Switch to default map"
+              : "Switch to satellite view"
+          }
+          aria-pressed={
+            satelliteMode
+          }
+          className="group flex items-center gap-2 rounded-full border border-white/20 bg-black/70 px-2 py-1.5 shadow-2xl backdrop-blur-xl transition-all duration-300 hover:bg-black/80 active:scale-95"
+        >
+          {/* LABEL */}
+
+          <span className="pl-1 text-[9px] font-bold tracking-wide text-white sm:text-[10px]">
+            {satelliteMode
+              ? "Satellite"
+              : "Default"}
+          </span>
+
+          {/* TOGGLE */}
+
+          <span
+            className={`relative flex h-5 w-9 shrink-0 items-center rounded-full p-[2px] transition-all duration-300 ${
+              satelliteMode
+                ? "bg-[#D4AF37]"
+                : "bg-white/25"
+            }`}
+          >
+            {/* KNOB */}
+
+            <span
+              className={`h-4 w-4 rounded-full bg-white shadow-md transition-transform duration-300 ${
+                satelliteMode
+                  ? "translate-x-4"
+                  : "translate-x-0"
+              }`}
+            />
+          </span>
+        </button>
       </div>
 
       {/* =====================================================
@@ -609,7 +653,7 @@ export default function ExploreMap({
           onClick={
             clearSelection
           }
-          className="absolute right-5 top-5 z-[1000] rounded-xl border border-black/10 bg-white/95 px-4 py-2 text-xs font-black text-zinc-800 shadow-xl backdrop-blur-xl transition hover:scale-105 dark:border-white/10 dark:bg-[#111]/95 dark:text-white"
+          className="absolute right-4 top-[52px] z-[1000] rounded-xl border border-black/10 bg-white/95 px-3 py-2 text-[10px] font-black text-zinc-800 shadow-xl backdrop-blur-xl transition hover:scale-105 dark:border-white/10 dark:bg-[#111]/95 dark:text-white sm:right-5 sm:top-[58px] sm:px-4 sm:text-xs"
         >
           Clear
         </button>
@@ -620,14 +664,13 @@ export default function ExploreMap({
       ====================================================== */}
 
       {activeHotel && (
-        <div className="absolute bottom-5 left-5 z-[1000] w-[300px] max-w-[calc(100%-40px)] overflow-hidden rounded-2xl border border-white/20 bg-white/95 shadow-2xl backdrop-blur-xl dark:border-white/10 dark:bg-[#111]/95">
+        <div className="absolute bottom-4 left-4 z-[1000] w-[300px] max-w-[calc(100%-32px)] overflow-hidden rounded-2xl border border-white/20 bg-white/95 shadow-2xl backdrop-blur-xl dark:border-white/10 dark:bg-[#111]/95 sm:bottom-5 sm:left-5 sm:max-w-[calc(100%-40px)]">
           {/* IMAGE */}
 
           {activeHotel.images?.[0] && (
             <img
               src={
-                activeHotel
-                  .images[0]
+                activeHotel.images[0]
               }
               alt={
                 activeHotel.name
