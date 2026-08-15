@@ -4,7 +4,6 @@ import {
   ArrowLeft,
   ChevronRight,
   KeyRound,
-  Mail,
   ShieldCheck,
   UserRound,
 } from "lucide-react";
@@ -34,8 +33,8 @@ export default function ProfileSettingsPage() {
           </h1>
 
           <p className="mt-2 max-w-2xl text-sm leading-6 text-white/40 sm:text-base">
-            Manage your personal information, password,
-            email address and account security.
+            Manage your personal information, password
+            and account security.
           </p>
         </div>
 
@@ -93,35 +92,6 @@ export default function ProfileSettingsPage() {
             <ChevronRight className="h-5 w-5 shrink-0 text-white/25 transition group-hover:translate-x-1 group-hover:text-white/60" />
           </Link>
 
-          {/* Change Email */}
-          <Link
-            href="/profile/settings/email"
-            className="group flex items-center gap-4 rounded-2xl border border-white/[0.08] bg-white/[0.035] p-5 backdrop-blur-xl transition duration-300 hover:border-[#D4AF37]/25 hover:bg-white/[0.055]"
-          >
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/[0.06]">
-              <Mail className="h-5 w-5 text-white/70" />
-            </div>
-
-            <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <h2 className="font-medium">
-                  Change Email Address
-                </h2>
-
-                <span className="rounded-full border border-[#D4AF37]/15 bg-[#D4AF37]/[0.06] px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-[#D4AF37]">
-                  Email Verification
-                </span>
-              </div>
-
-              <p className="mt-1 text-sm text-white/35">
-                Add a new email and verify it with a
-                confirmation code.
-              </p>
-            </div>
-
-            <ChevronRight className="h-5 w-5 shrink-0 text-white/25 transition group-hover:translate-x-1 group-hover:text-white/60" />
-          </Link>
-
           {/* Security */}
           <div className="rounded-2xl border border-emerald-500/15 bg-emerald-500/[0.035] p-5">
             <div className="flex items-start gap-4">
@@ -136,8 +106,8 @@ export default function ProfileSettingsPage() {
 
                 <p className="mt-1 text-sm leading-6 text-white/35">
                   Sensitive account changes require
-                  verification through your registered email
-                  address.
+                  verification through your registered
+                  email address.
                 </p>
 
                 <div className="mt-4 flex flex-wrap gap-2">
@@ -158,11 +128,11 @@ export default function ProfileSettingsPage() {
           </div>
         </div>
 
-        {/* Security note */}
+        {/* Security Note */}
         <div className="mt-6 rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5">
           <p className="text-xs leading-5 text-white/30">
             For your security, BookingLK will never change
-            your password or email address without completing
+            sensitive account information without completing
             the required verification process.
           </p>
         </div>
