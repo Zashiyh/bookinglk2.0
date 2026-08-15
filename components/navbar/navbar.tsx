@@ -50,6 +50,10 @@ const navItems = [
   },
 ];
 
+/* =========================================================
+   DISPLAY NAME
+========================================================= */
+
 function getDisplayName(user: UserData | null) {
   if (!user) return "";
 
@@ -78,6 +82,10 @@ function getDisplayName(user: UserData | null) {
 
   return "User";
 }
+
+/* =========================================================
+   INITIALS
+========================================================= */
 
 function getInitials(user: UserData | null) {
   if (!user) return "U";
@@ -119,6 +127,10 @@ function getInitials(user: UserData | null) {
   return "U";
 }
 
+/* =========================================================
+   GREETING
+========================================================= */
+
 function getGreeting() {
   const hour = new Date().getHours();
 
@@ -137,6 +149,10 @@ function getGreeting() {
   return "Good night";
 }
 
+/* =========================================================
+   NAVBAR
+========================================================= */
+
 export function Navbar() {
   const [mobileOpen, setMobileOpen] =
     useState(false);
@@ -153,9 +169,10 @@ export function Navbar() {
   const profileRef =
     useRef<HTMLDivElement>(null);
 
-  /*
-   * Load logged-in user
-   */
+  /* =======================================================
+     LOAD LOGGED-IN USER
+  ======================================================= */
+
   useEffect(() => {
     async function loadUser() {
       try {
@@ -174,7 +191,10 @@ export function Navbar() {
 
         const result = await response.json();
 
-        if (result.success && result.user) {
+        if (
+          result.success &&
+          result.user
+        ) {
           setUser(result.user);
         } else if (
           result.success &&
@@ -199,9 +219,10 @@ export function Navbar() {
     loadUser();
   }, []);
 
-  /*
-   * Close profile dropdown when clicking outside
-   */
+  /* =======================================================
+     CLOSE PROFILE DROPDOWN WHEN CLICKING OUTSIDE
+  ======================================================= */
+
   useEffect(() => {
     function handleClickOutside(
       event: MouseEvent
@@ -229,14 +250,45 @@ export function Navbar() {
     };
   }, []);
 
-  /*
-   * Logout
-   */
+  /* =======================================================
+     CLOSE MOBILE MENU ON ESC
+  ======================================================= */
+
+  useEffect(() => {
+    function handleEscape(
+      event: KeyboardEvent
+    ) {
+      if (event.key === "Escape") {
+        setMobileOpen(false);
+        setProfileOpen(false);
+      }
+    }
+
+    document.addEventListener(
+      "keydown",
+      handleEscape
+    );
+
+    return () => {
+      document.removeEventListener(
+        "keydown",
+        handleEscape
+      );
+    };
+  }, []);
+
+  /* =======================================================
+     LOGOUT
+  ======================================================= */
+
   async function handleLogout() {
     try {
-      await fetch("/api/auth/logout", {
-        method: "POST",
-      });
+      await fetch(
+        "/api/auth/logout",
+        {
+          method: "POST",
+        }
+      );
     } catch (error) {
       console.error(
         "LOGOUT_ERROR:",
@@ -268,8 +320,26 @@ export function Navbar() {
 
       <header className="fixed inset-x-0 top-0 z-50">
         <div className="mx-auto px-4 pt-4 sm:px-6 lg:px-8">
-          <nav className="mx-auto flex h-16 max-w-7xl items-center justify-between rounded-2xl border border-[var(--border)] bg-white/80 px-4 shadow-lg shadow-black/5 backdrop-blur-xl dark:bg-[#090909]/80 sm:px-5">
-
+          <nav
+            className="
+              mx-auto
+              flex
+              h-16
+              max-w-7xl
+              items-center
+              justify-between
+              rounded-2xl
+              border
+              border-[var(--border)]
+              bg-white/80
+              px-4
+              shadow-lg
+              shadow-black/5
+              backdrop-blur-xl
+              dark:bg-[#090909]/80
+              sm:px-5
+            "
+          >
             {/* =================================================
                 LOGO
             ================================================= */}
@@ -277,16 +347,40 @@ export function Navbar() {
             <Link
               href="/"
               className="group flex items-center gap-2"
-              onClick={() =>
-                setMobileOpen(false)
-              }
+              onClick={() => {
+                setMobileOpen(false);
+                setProfileOpen(false);
+              }}
             >
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--gold)] text-sm font-black text-black shadow-sm transition group-hover:scale-105">
+              <div
+                className="
+                  flex
+                  h-9
+                  w-9
+                  items-center
+                  justify-center
+                  rounded-xl
+                  bg-[var(--gold)]
+                  text-sm
+                  font-black
+                  text-black
+                  shadow-sm
+                  transition
+                  group-hover:scale-105
+                "
+              >
                 B
               </div>
 
               <div className="hidden sm:block">
-                <div className="font-[var(--font-manrope)] text-lg font-extrabold tracking-tight">
+                <div
+                  className="
+                    font-[var(--font-manrope)]
+                    text-lg
+                    font-extrabold
+                    tracking-tight
+                  "
+                >
                   Booking
                   <span className="text-[var(--gold-bright)]">
                     LK
@@ -307,11 +401,28 @@ export function Navbar() {
                   <Link
                     key={item.href}
                     href={item.href}
-                    className="group flex items-center gap-2 rounded-xl px-4 py-2 text-sm text-[var(--muted)] transition hover:bg-black/5 hover:text-[var(--foreground)] dark:hover:bg-white/5"
+                    className="
+                      group
+                      flex
+                      items-center
+                      gap-2
+                      rounded-xl
+                      px-4
+                      py-2
+                      text-sm
+                      text-[var(--muted)]
+                      transition
+                      hover:bg-black/5
+                      hover:text-[var(--foreground)]
+                      dark:hover:bg-white/5
+                    "
                   >
                     <Icon
                       size={16}
-                      className="transition group-hover:text-[var(--gold-bright)]"
+                      className="
+                        transition
+                        group-hover:text-[var(--gold-bright)]
+                      "
                     />
 
                     {item.label}
@@ -325,33 +436,74 @@ export function Navbar() {
             ================================================= */}
 
             <div className="hidden items-center gap-2 md:flex">
-
               {/* Search */}
+
               <button
+                type="button"
                 aria-label="Search"
-                className="flex h-10 w-10 items-center justify-center rounded-xl text-[var(--muted)] transition hover:bg-black/5 hover:text-[var(--gold-bright)] dark:hover:bg-white/5"
+                className="
+                  flex
+                  h-10
+                  w-10
+                  items-center
+                  justify-center
+                  rounded-xl
+                  text-[var(--muted)]
+                  transition
+                  hover:bg-black/5
+                  hover:text-[var(--gold-bright)]
+                  dark:hover:bg-white/5
+                "
               >
                 <Search size={18} />
               </button>
 
               {/* Favorites */}
+
               <Link
                 href="/favorites"
                 aria-label="Favorites"
-                className="flex h-10 w-10 items-center justify-center rounded-xl text-[var(--muted)] transition hover:bg-black/5 hover:text-[var(--gold-bright)] dark:hover:bg-white/5"
+                className="
+                  flex
+                  h-10
+                  w-10
+                  items-center
+                  justify-center
+                  rounded-xl
+                  text-[var(--muted)]
+                  transition
+                  hover:bg-black/5
+                  hover:text-[var(--gold-bright)]
+                  dark:hover:bg-white/5
+                "
               >
                 <Heart size={18} />
               </Link>
 
-              {/* Trips */}
+              {/* =================================================
+                  FIXED MY BOOKINGS / TRIPS LINK
+              ================================================= */}
+
               <Link
-                href="/dashboard/bookings"
-                className="hidden rounded-xl px-4 py-2 text-sm font-medium text-[var(--muted)] transition hover:text-[var(--foreground)] xl:block"
+                href="/my-bookings"
+                className="
+                  hidden
+                  rounded-xl
+                  px-4
+                  py-2
+                  text-sm
+                  font-medium
+                  text-[var(--muted)]
+                  transition
+                  hover:text-[var(--foreground)]
+                  xl:block
+                "
               >
                 Trips
               </Link>
 
               {/* Theme */}
+
               <ThemeToggle />
 
               {/* =================================================
@@ -363,6 +515,8 @@ export function Navbar() {
                   ref={profileRef}
                   className="relative"
                 >
+                  {/* Profile button */}
+
                   <button
                     type="button"
                     onClick={() =>
@@ -370,31 +524,78 @@ export function Navbar() {
                         (value) => !value
                       )
                     }
-                    className="flex items-center gap-3 rounded-2xl border border-[var(--border)] bg-white/60 px-2.5 py-1.5 transition hover:border-[var(--gold)] hover:bg-white dark:bg-white/5 dark:hover:bg-white/10"
+                    className="
+                      flex
+                      items-center
+                      gap-3
+                      rounded-2xl
+                      border
+                      border-[var(--border)]
+                      bg-white/60
+                      px-2.5
+                      py-1.5
+                      transition
+                      hover:border-[var(--gold)]
+                      hover:bg-white
+                      dark:bg-white/5
+                      dark:hover:bg-white/10
+                    "
                   >
                     {/* Avatar */}
-                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--gold)] text-xs font-black text-black">
+
+                    <div
+                      className="
+                        flex
+                        h-9
+                        w-9
+                        items-center
+                        justify-center
+                        rounded-xl
+                        bg-[var(--gold)]
+                        text-xs
+                        font-black
+                        text-black
+                      "
+                    >
                       {initials}
                     </div>
 
                     {/* Name */}
+
                     <div className="hidden text-left xl:block">
-                      <p className="text-[10px] font-medium text-[var(--muted)]">
+                      <p
+                        className="
+                          text-[10px]
+                          font-medium
+                          text-[var(--muted)]
+                        "
+                      >
                         {greeting}
                       </p>
 
-                      <p className="max-w-[130px] truncate text-sm font-bold">
+                      <p
+                        className="
+                          max-w-[130px]
+                          truncate
+                          text-sm
+                          font-bold
+                        "
+                      >
                         {displayName}
                       </p>
                     </div>
 
                     <ChevronDown
                       size={15}
-                      className={`text-[var(--muted)] transition ${
-                        profileOpen
-                          ? "rotate-180"
-                          : ""
-                      }`}
+                      className={`
+                        text-[var(--muted)]
+                        transition
+                        ${
+                          profileOpen
+                            ? "rotate-180"
+                            : ""
+                        }
+                      `}
                     />
                   </button>
 
@@ -423,13 +624,47 @@ export function Navbar() {
                         transition={{
                           duration: 0.15,
                         }}
-                        className="absolute right-0 mt-3 w-64 origin-top-right overflow-hidden rounded-2xl border border-[var(--border)] bg-white shadow-2xl shadow-black/10 dark:bg-[#111111]"
+                        className="
+                          absolute
+                          right-0
+                          mt-3
+                          w-64
+                          origin-top-right
+                          overflow-hidden
+                          rounded-2xl
+                          border
+                          border-[var(--border)]
+                          bg-white
+                          shadow-2xl
+                          shadow-black/10
+                          dark:bg-[#111111]
+                        "
                       >
                         {/* User header */}
-                        <div className="border-b border-[var(--border)] p-4">
-                          <div className="flex items-center gap-3">
 
-                            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[var(--gold)] text-sm font-black text-black">
+                        <div
+                          className="
+                            border-b
+                            border-[var(--border)]
+                            p-4
+                          "
+                        >
+                          <div className="flex items-center gap-3">
+                            <div
+                              className="
+                                flex
+                                h-11
+                                w-11
+                                shrink-0
+                                items-center
+                                justify-center
+                                rounded-xl
+                                bg-[var(--gold)]
+                                text-sm
+                                font-black
+                                text-black
+                              "
+                            >
                               {initials}
                             </div>
 
@@ -438,33 +673,68 @@ export function Navbar() {
                                 {displayName}
                               </p>
 
-                              <p className="truncate text-xs text-[var(--muted)]">
+                              <p
+                                className="
+                                  truncate
+                                  text-xs
+                                  text-[var(--muted)]
+                                "
+                              >
                                 {user.email || ""}
                               </p>
                             </div>
-
                           </div>
 
                           <div className="mt-3 flex items-center justify-between">
-                            <span className="text-xs text-[var(--muted)]">
+                            <span
+                              className="
+                                text-xs
+                                text-[var(--muted)]
+                              "
+                            >
                               {greeting}
                             </span>
 
-                            <span className="rounded-full bg-[var(--gold)]/10 px-2 py-1 text-[10px] font-bold uppercase text-[var(--gold)]">
+                            <span
+                              className="
+                                rounded-full
+                                bg-[var(--gold)]/10
+                                px-2
+                                py-1
+                                text-[10px]
+                                font-bold
+                                uppercase
+                                text-[var(--gold)]
+                              "
+                            >
                               {user.role || "USER"}
                             </span>
                           </div>
                         </div>
 
                         {/* Menu */}
+
                         <div className="p-2">
+                          {/* Profile */}
 
                           <Link
                             href="/profile"
                             onClick={() =>
                               setProfileOpen(false)
                             }
-                            className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition hover:bg-black/5 dark:hover:bg-white/5"
+                            className="
+                              flex
+                              items-center
+                              gap-3
+                              rounded-xl
+                              px-3
+                              py-3
+                              text-sm
+                              font-medium
+                              transition
+                              hover:bg-black/5
+                              dark:hover:bg-white/5
+                            "
                           >
                             <UserCircle
                               size={18}
@@ -476,12 +746,28 @@ export function Navbar() {
                             </span>
                           </Link>
 
+                          {/* =================================================
+                              FIXED MY BOOKINGS
+                          ================================================= */}
+
                           <Link
-                            href="/dashboard/bookings"
+                            href="/my-bookings"
                             onClick={() =>
                               setProfileOpen(false)
                             }
-                            className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition hover:bg-black/5 dark:hover:bg-white/5"
+                            className="
+                              flex
+                              items-center
+                              gap-3
+                              rounded-xl
+                              px-3
+                              py-3
+                              text-sm
+                              font-medium
+                              transition
+                              hover:bg-black/5
+                              dark:hover:bg-white/5
+                            "
                           >
                             <Compass
                               size={18}
@@ -495,12 +781,25 @@ export function Navbar() {
 
                           <div className="my-1 h-px bg-[var(--border)]" />
 
+                          {/* Logout */}
+
                           <button
                             type="button"
-                            onClick={
-                              handleLogout
-                            }
-                            className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-red-500 transition hover:bg-red-500/5"
+                            onClick={handleLogout}
+                            className="
+                              flex
+                              w-full
+                              items-center
+                              gap-3
+                              rounded-xl
+                              px-3
+                              py-3
+                              text-sm
+                              font-medium
+                              text-red-500
+                              transition
+                              hover:bg-red-500/5
+                            "
                           >
                             <LogOut size={18} />
 
@@ -516,18 +815,46 @@ export function Navbar() {
               ) : (
                 <>
                   {/* Sign In */}
+
                   <Link
                     href="/login"
-                    className="flex items-center gap-2 rounded-xl border border-[var(--border)] px-4 py-2 text-sm font-semibold transition hover:border-[var(--gold)] hover:text-[var(--gold-bright)]"
+                    className="
+                      flex
+                      items-center
+                      gap-2
+                      rounded-xl
+                      border
+                      border-[var(--border)]
+                      px-4
+                      py-2
+                      text-sm
+                      font-semibold
+                      transition
+                      hover:border-[var(--gold)]
+                      hover:text-[var(--gold-bright)]
+                    "
                   >
                     <User size={16} />
+
                     Sign In
                   </Link>
 
                   {/* Register */}
+
                   <Link
                     href="/register"
-                    className="rounded-xl bg-[var(--gold)] px-4 py-2 text-sm font-bold text-black transition hover:scale-[1.02] hover:bg-[var(--gold-bright)]"
+                    className="
+                      rounded-xl
+                      bg-[var(--gold)]
+                      px-4
+                      py-2
+                      text-sm
+                      font-bold
+                      text-black
+                      transition
+                      hover:scale-[1.02]
+                      hover:bg-[var(--gold-bright)]
+                    "
                   >
                     Get Started
                   </Link>
@@ -540,9 +867,22 @@ export function Navbar() {
             ================================================= */}
 
             <div className="flex items-center gap-1 md:hidden">
-
               {!loadingUser && user && (
-                <div className="mr-1 flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--gold)] text-xs font-black text-black">
+                <div
+                  className="
+                    mr-1
+                    flex
+                    h-9
+                    w-9
+                    items-center
+                    justify-center
+                    rounded-xl
+                    bg-[var(--gold)]
+                    text-xs
+                    font-black
+                    text-black
+                  "
+                >
                   {initials}
                 </div>
               )}
@@ -550,6 +890,7 @@ export function Navbar() {
               <ThemeToggle />
 
               <button
+                type="button"
                 aria-label={
                   mobileOpen
                     ? "Close menu"
@@ -560,7 +901,17 @@ export function Navbar() {
                     (value) => !value
                   )
                 }
-                className="flex h-10 w-10 items-center justify-center rounded-xl transition hover:bg-black/5 dark:hover:bg-white/5"
+                className="
+                  flex
+                  h-10
+                  w-10
+                  items-center
+                  justify-center
+                  rounded-xl
+                  transition
+                  hover:bg-black/5
+                  dark:hover:bg-white/5
+                "
               >
                 {mobileOpen ? (
                   <X size={21} />
@@ -595,27 +946,68 @@ export function Navbar() {
             transition={{
               duration: 0.2,
             }}
-            className="fixed inset-x-4 top-24 z-40 md:hidden"
+            className="
+              fixed
+              inset-x-4
+              top-24
+              z-40
+              md:hidden
+            "
           >
-
             {/* SOLID MOBILE MENU */}
-            <div className="rounded-2xl border border-[var(--border)] bg-white p-4 shadow-2xl dark:bg-[#111111]">
 
+            <div
+              className="
+                rounded-2xl
+                border
+                border-[var(--border)]
+                bg-white
+                p-4
+                shadow-2xl
+                dark:bg-[#111111]
+              "
+            >
               {/* =================================================
                   LOGGED USER
               ================================================= */}
 
               {user && (
-                <div className="mb-4 rounded-2xl border border-[var(--border)] bg-zinc-100 p-4 dark:bg-white/5">
-
+                <div
+                  className="
+                    mb-4
+                    rounded-2xl
+                    border
+                    border-[var(--border)]
+                    bg-zinc-100
+                    p-4
+                    dark:bg-white/5
+                  "
+                >
                   <div className="flex items-center gap-3">
-
-                    <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--gold)] text-sm font-black text-black">
+                    <div
+                      className="
+                        flex
+                        h-11
+                        w-11
+                        items-center
+                        justify-center
+                        rounded-xl
+                        bg-[var(--gold)]
+                        text-sm
+                        font-black
+                        text-black
+                      "
+                    >
                       {initials}
                     </div>
 
                     <div className="min-w-0">
-                      <p className="text-xs text-[var(--muted)]">
+                      <p
+                        className="
+                          text-xs
+                          text-[var(--muted)]
+                        "
+                      >
                         {greeting}
                       </p>
 
@@ -623,9 +1015,7 @@ export function Navbar() {
                         {displayName}
                       </p>
                     </div>
-
                   </div>
-
                 </div>
               )}
 
@@ -634,7 +1024,6 @@ export function Navbar() {
               ================================================= */}
 
               <div className="space-y-1">
-
                 {navItems.map((item) => {
                   const Icon = item.icon;
 
@@ -645,7 +1034,21 @@ export function Navbar() {
                       onClick={() =>
                         setMobileOpen(false)
                       }
-                      className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-[var(--muted)] transition hover:bg-zinc-100 hover:text-[var(--foreground)] dark:hover:bg-white/5"
+                      className="
+                        flex
+                        items-center
+                        gap-3
+                        rounded-xl
+                        px-4
+                        py-3
+                        text-sm
+                        font-medium
+                        text-[var(--muted)]
+                        transition
+                        hover:bg-zinc-100
+                        hover:text-[var(--foreground)]
+                        dark:hover:bg-white/5
+                      "
                     >
                       <Icon size={18} />
 
@@ -653,10 +1056,10 @@ export function Navbar() {
                     </Link>
                   );
                 })}
-
               </div>
 
               {/* Divider */}
+
               <div className="my-4 h-px bg-[var(--border)]" />
 
               {/* =================================================
@@ -665,41 +1068,84 @@ export function Navbar() {
 
               {user ? (
                 <div className="space-y-1">
+                  {/* Profile */}
 
                   <Link
                     href="/profile"
                     onClick={() =>
                       setMobileOpen(false)
                     }
-                    className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition hover:bg-zinc-100 dark:hover:bg-white/5"
+                    className="
+                      flex
+                      items-center
+                      gap-3
+                      rounded-xl
+                      px-4
+                      py-3
+                      text-sm
+                      font-semibold
+                      transition
+                      hover:bg-zinc-100
+                      dark:hover:bg-white/5
+                    "
                   >
                     <UserCircle size={18} />
 
                     View profile
                   </Link>
 
+                  {/* =================================================
+                      FIXED MOBILE MY BOOKINGS
+                  ================================================= */}
+
                   <Link
-                    href="/dashboard/bookings"
+                    href="/my-bookings"
                     onClick={() =>
                       setMobileOpen(false)
                     }
-                    className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition hover:bg-zinc-100 dark:hover:bg-white/5"
+                    className="
+                      flex
+                      items-center
+                      gap-3
+                      rounded-xl
+                      px-4
+                      py-3
+                      text-sm
+                      font-semibold
+                      transition
+                      hover:bg-zinc-100
+                      dark:hover:bg-white/5
+                    "
                   >
                     <Compass size={18} />
 
                     My bookings
                   </Link>
 
+                  {/* Logout */}
+
                   <button
                     type="button"
                     onClick={handleLogout}
-                    className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-red-500 transition hover:bg-red-500/5"
+                    className="
+                      flex
+                      w-full
+                      items-center
+                      gap-3
+                      rounded-xl
+                      px-4
+                      py-3
+                      text-sm
+                      font-semibold
+                      text-red-500
+                      transition
+                      hover:bg-red-500/5
+                    "
                   >
                     <LogOut size={18} />
 
                     Logout
                   </button>
-
                 </div>
               ) : (
                 /* =================================================
@@ -707,30 +1153,54 @@ export function Navbar() {
                 ================================================= */
 
                 <div className="grid grid-cols-2 gap-2">
+                  {/* Sign In */}
 
                   <Link
                     href="/login"
                     onClick={() =>
                       setMobileOpen(false)
                     }
-                    className="rounded-xl border border-[var(--border)] px-4 py-3 text-center text-sm font-semibold transition hover:border-[var(--gold)] hover:text-[var(--gold-bright)]"
+                    className="
+                      rounded-xl
+                      border
+                      border-[var(--border)]
+                      px-4
+                      py-3
+                      text-center
+                      text-sm
+                      font-semibold
+                      transition
+                      hover:border-[var(--gold)]
+                      hover:text-[var(--gold-bright)]
+                    "
                   >
                     Sign In
                   </Link>
+
+                  {/* Register */}
 
                   <Link
                     href="/register"
                     onClick={() =>
                       setMobileOpen(false)
                     }
-                    className="rounded-xl bg-[var(--gold)] px-4 py-3 text-center text-sm font-bold text-black transition hover:bg-[var(--gold-bright)]"
+                    className="
+                      rounded-xl
+                      bg-[var(--gold)]
+                      px-4
+                      py-3
+                      text-center
+                      text-sm
+                      font-bold
+                      text-black
+                      transition
+                      hover:bg-[var(--gold-bright)]
+                    "
                   >
                     Get Started
                   </Link>
-
                 </div>
               )}
-
             </div>
           </motion.div>
         )}
