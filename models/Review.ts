@@ -50,6 +50,10 @@ const ReviewSchema = new Schema<IReview>(
       required: true,
       min: 1,
       max: 5,
+      validate: {
+        validator: Number.isInteger,
+        message: "Rating must be an integer between 1 and 5.",
+      },
     },
 
     title: {
@@ -71,6 +75,7 @@ const ReviewSchema = new Schema<IReview>(
       type: String,
       required: true,
       trim: true,
+      maxlength: 120,
     },
 
     isPublished: {
@@ -82,6 +87,7 @@ const ReviewSchema = new Schema<IReview>(
     isVerifiedStay: {
       type: Boolean,
       default: false,
+      index: true,
     },
   },
   {
@@ -89,10 +95,22 @@ const ReviewSchema = new Schema<IReview>(
   }
 );
 
+/*
+|--------------------------------------------------------------------------
+| REVIEW QUERY INDEX
+|--------------------------------------------------------------------------
+*/
+
 ReviewSchema.index({
   hotelId: 1,
   createdAt: -1,
 });
+
+/*
+|--------------------------------------------------------------------------
+| ONE REVIEW PER USER PER HOTEL
+|--------------------------------------------------------------------------
+*/
 
 ReviewSchema.index(
   {

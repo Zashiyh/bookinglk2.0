@@ -1,8 +1,13 @@
-import { NextRequest, NextResponse } from "next/server";
-import mongoose from "mongoose";
-import jwt from "jsonwebtoken";
+import {
+  NextRequest,
+  NextResponse,
+} from "next/server";
+
+import { Types } from "mongoose";
 
 import connectDB from "@/lib/db/mongoose";
+import { verifyToken } from "@/lib/auth/jwt";
+
 import Review from "@/models/Review";
 import Hotel from "@/models/Hotel";
 
@@ -13,108 +18,105 @@ interface RouteContext {
   }>;
 }
 
-interface JwtPayload {
-  userId?: string;
-  id?: string;
-  _id?: string;
+/*
+|--------------------------------------------------------------------------
+| GET AUTHENTICATED USER
+|--------------------------------------------------------------------------
+*/
+
+function getAuthenticatedUser(
+  request: NextRequest
+) {
+  const token =
+    request.cookies.get(
+      "bookinglk_token"
+    )?.value;
+
+  if (!token) {
+    return null;
+  }
+
+  const user =
+    verifyToken(token);
+
+  if (!user) {
+    return null;
+  }
+
+  if (
+    !user.userId ||
+    !Types.ObjectId.isValid(
+      user.userId
+    )
+  ) {
+    return null;
+  }
+
+  return user;
 }
 
 /*
 |--------------------------------------------------------------------------
-| GET USER ID FROM AUTHENTICATION COOKIE
+| RECALCULATE HOTEL RATING
 |--------------------------------------------------------------------------
 */
 
-function getUserIdFromRequest(
-  request: NextRequest
-): string | null {
-  try {
-    /*
-     * BookingLK uses ONE authentication cookie:
-     *
-     * bookinglk_token
-     */
+async function recalculateHotelRating(
+  hotelId: Types.ObjectId
+) {
+  const stats =
+    await Review.aggregate([
+      {
+        $match: {
+          hotelId,
 
-    const token =
-      request.cookies.get("bookinglk_token")?.value;
+          isPublished: true,
+        },
+      },
 
-    if (!token) {
-      console.log(
-        "REVIEW AUTH: bookinglk_token not found."
-      );
+      {
+        $group: {
+          _id: null,
 
-      return null;
+          averageRating: {
+            $avg: "$rating",
+          },
+
+          reviewCount: {
+            $sum: 1,
+          },
+        },
+      },
+    ]);
+
+  const reviewCount =
+    stats[0]?.reviewCount || 0;
+
+  const hotelRating =
+    reviewCount > 0
+      ? Number(
+          Number(
+            stats[0].averageRating
+          ).toFixed(1)
+        )
+      : 0;
+
+  await Hotel.findByIdAndUpdate(
+    hotelId,
+    {
+      $set: {
+        rating:
+          hotelRating,
+
+        reviewCount,
+      },
     }
+  );
 
-    /*
-     * JWT secret
-     */
-
-    const secret =
-      process.env.JWT_SECRET;
-
-    if (!secret) {
-      console.error(
-        "REVIEW AUTH: JWT_SECRET is missing from environment variables."
-      );
-
-      return null;
-    }
-
-    /*
-     * Verify JWT
-     */
-
-    const decoded =
-      jwt.verify(
-        token,
-        secret
-      ) as JwtPayload;
-
-    /*
-     * Get user ID from JWT payload
-     */
-
-    const userId =
-      decoded.userId ||
-      decoded.id ||
-      decoded._id ||
-      null;
-
-    if (!userId) {
-      console.error(
-        "REVIEW AUTH: JWT does not contain a user ID."
-      );
-
-      return null;
-    }
-
-    /*
-     * Validate MongoDB ObjectId
-     */
-
-    if (
-      !mongoose.Types.ObjectId.isValid(
-        userId
-      )
-    ) {
-      console.error(
-        "REVIEW AUTH: Invalid user ID:",
-        userId
-      );
-
-      return null;
-    }
-
-    return userId;
-  } catch (error) {
-    console.error(
-      "REVIEW AUTH JWT ERROR:",
-      error
-    );
-
-    return null;
-  }
+  return {
+    hotelRating,
+    reviewCount,
+  };
 }
 
 /*
@@ -131,13 +133,17 @@ export async function PUT(
     await connectDB();
 
     /*
-     * Authenticate user
-     */
+    |--------------------------------------------------------------------------
+    | AUTH
+    |--------------------------------------------------------------------------
+    */
 
-    const userId =
-      getUserIdFromRequest(request);
+    const user =
+      getAuthenticatedUser(
+        request
+      );
 
-    if (!userId) {
+    if (!user) {
       return NextResponse.json(
         {
           success: false,
@@ -151,8 +157,29 @@ export async function PUT(
     }
 
     /*
-     * Get route parameters
-     */
+    |--------------------------------------------------------------------------
+    | ROLE
+    |--------------------------------------------------------------------------
+    */
+
+    if (user.role !== "USER") {
+      return NextResponse.json(
+        {
+          success: false,
+          message:
+            "Only guests can edit reviews.",
+        },
+        {
+          status: 403,
+        }
+      );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | PARAMS
+    |--------------------------------------------------------------------------
+    */
 
     const {
       slug,
@@ -160,11 +187,13 @@ export async function PUT(
     } = await context.params;
 
     /*
-     * Validate review ID
-     */
+    |--------------------------------------------------------------------------
+    | VALIDATE REVIEW ID
+    |--------------------------------------------------------------------------
+    */
 
     if (
-      !mongoose.Types.ObjectId.isValid(
+      !Types.ObjectId.isValid(
         reviewId
       )
     ) {
@@ -181,39 +210,118 @@ export async function PUT(
     }
 
     /*
-     * Parse request body
-     */
+    |--------------------------------------------------------------------------
+    | FIND HOTEL
+    |--------------------------------------------------------------------------
+    */
 
-    const body =
-      await request.json();
+    const hotel =
+      await Hotel.findOne({
+        slug,
+        isPublished: true,
+      });
 
-    const rating =
-      Number(body.rating);
-
-    const comment =
-      typeof body.comment === "string"
-        ? body.comment.trim()
-        : "";
-
-    const title =
-      typeof body.title === "string"
-        ? body.title.trim()
-        : "";
+    if (!hotel) {
+      return NextResponse.json(
+        {
+          success: false,
+          message:
+            "Hotel not found.",
+        },
+        {
+          status: 404,
+        }
+      );
+    }
 
     /*
-     * Validate rating
-     */
+    |--------------------------------------------------------------------------
+    | FIND REVIEW
+    |--------------------------------------------------------------------------
+    */
+
+    const review =
+      await Review.findById(
+        reviewId
+      );
+
+    if (!review) {
+      return NextResponse.json(
+        {
+          success: false,
+          message:
+            "Review not found.",
+        },
+        {
+          status: 404,
+        }
+      );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | HOTEL OWNERSHIP CHECK
+    |--------------------------------------------------------------------------
+    */
 
     if (
-      !Number.isFinite(rating) ||
-      rating < 1 ||
-      rating > 5
+      review.hotelId.toString() !==
+      hotel._id.toString()
     ) {
       return NextResponse.json(
         {
           success: false,
           message:
-            "Rating must be between 1 and 5.",
+            "This review does not belong to this hotel.",
+        },
+        {
+          status: 403,
+        }
+      );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | OWNER CHECK
+    |--------------------------------------------------------------------------
+    */
+
+    if (
+      review.userId.toString() !==
+      user.userId
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          message:
+            "You can only edit your own review.",
+        },
+        {
+          status: 403,
+        }
+      );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | BODY
+    |--------------------------------------------------------------------------
+    */
+
+    let body: {
+      rating?: unknown;
+      title?: unknown;
+      comment?: unknown;
+    };
+
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json(
+        {
+          success: false,
+          message:
+            "Invalid request body.",
         },
         {
           status: 400,
@@ -222,8 +330,52 @@ export async function PUT(
     }
 
     /*
-     * Validate comment
-     */
+    |--------------------------------------------------------------------------
+    | PARSE
+    |--------------------------------------------------------------------------
+    */
+
+    const rating =
+      Number(body.rating);
+
+    const title =
+      typeof body.title === "string"
+        ? body.title.trim()
+        : "";
+
+    const comment =
+      typeof body.comment === "string"
+        ? body.comment.trim()
+        : "";
+
+    /*
+    |--------------------------------------------------------------------------
+    | VALIDATE RATING
+    |--------------------------------------------------------------------------
+    */
+
+    if (
+      !Number.isInteger(rating) ||
+      rating < 1 ||
+      rating > 5
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          message:
+            "Rating must be an integer between 1 and 5.",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | VALIDATE COMMENT
+    |--------------------------------------------------------------------------
+    */
 
     if (comment.length < 5) {
       return NextResponse.json(
@@ -252,174 +404,109 @@ export async function PUT(
     }
 
     /*
-     * Find review
-     */
+    |--------------------------------------------------------------------------
+    | VALIDATE TITLE
+    |--------------------------------------------------------------------------
+    */
 
-    const review =
-      await Review.findById(
-        reviewId
-      );
-
-    if (!review) {
+    if (title.length > 120) {
       return NextResponse.json(
         {
           success: false,
           message:
-            "Review not found.",
+            "Review title cannot exceed 120 characters.",
         },
         {
-          status: 404,
+          status: 400,
         }
       );
     }
 
     /*
-     * Security:
-     * Only review owner can edit
-     */
-
-    if (
-      review.userId.toString() !==
-      userId
-    ) {
-      return NextResponse.json(
-        {
-          success: false,
-          message:
-            "You can only edit your own review.",
-        },
-        {
-          status: 403,
-        }
-      );
-    }
-
-    /*
-     * Find hotel
-     */
-
-    const hotel =
-      await Hotel.findOne({
-        slug,
-      });
-
-    if (!hotel) {
-      return NextResponse.json(
-        {
-          success: false,
-          message:
-            "Hotel not found.",
-        },
-        {
-          status: 404,
-        }
-      );
-    }
-
-    /*
-     * Security:
-     * Review must belong to this hotel
-     */
-
-    if (
-      review.hotelId.toString() !==
-      hotel._id.toString()
-    ) {
-      return NextResponse.json(
-        {
-          success: false,
-          message:
-            "This review does not belong to this hotel.",
-        },
-        {
-          status: 403,
-        }
-      );
-    }
-
-    /*
-     * Update review
-     */
+    |--------------------------------------------------------------------------
+    | UPDATE
+    |--------------------------------------------------------------------------
+    */
 
     review.rating =
       rating;
 
-    review.comment =
-      comment;
-
     review.title =
       title;
+
+    review.comment =
+      comment;
 
     await review.save();
 
     /*
-     * Recalculate hotel rating
-     */
+    |--------------------------------------------------------------------------
+    | RECALCULATE HOTEL
+    |--------------------------------------------------------------------------
+    */
 
-    const publishedReviews =
-      await Review.find({
-        hotelId: hotel._id,
-        isPublished: true,
-      }).select("rating");
-
-    const reviewCount =
-      publishedReviews.length;
-
-    const totalRating =
-      publishedReviews.reduce(
-        (sum, item) =>
-          sum + item.rating,
-        0
+    const {
+      hotelRating,
+      reviewCount,
+    } =
+      await recalculateHotelRating(
+        hotel._id
       );
 
-    const hotelRating =
-      reviewCount > 0
-        ? Number(
-            (
-              totalRating /
-              reviewCount
-            ).toFixed(1)
-          )
-        : 0;
-
-    hotel.rating =
-      hotelRating;
-
-    hotel.reviewCount =
-      reviewCount;
-
-    await hotel.save();
-
     /*
-     * Response
-     */
+    |--------------------------------------------------------------------------
+    | RESPONSE
+    |--------------------------------------------------------------------------
+    */
 
     return NextResponse.json(
       {
         success: true,
+
         message:
           "Review updated successfully.",
+
         data: {
-          _id: review._id,
+          _id:
+            review._id.toString(),
+
           hotelId:
-            review.hotelId,
+            review.hotelId.toString(),
+
           userId:
-            review.userId,
+            review.userId.toString(),
+
+          bookingId:
+            review.bookingId
+              ? review.bookingId.toString()
+              : undefined,
+
           userName:
             review.userName,
+
           rating:
             review.rating,
+
           title:
             review.title || "",
+
           comment:
             review.comment,
+
           createdAt:
             review.createdAt,
+
           updatedAt:
             review.updatedAt,
+
           isVerifiedStay:
             review.isVerifiedStay,
+
+          isVerified:
+            review.isVerifiedStay,
+
           hotelRating,
+
           reviewCount,
         },
       },
@@ -460,13 +547,17 @@ export async function DELETE(
     await connectDB();
 
     /*
-     * Authenticate user
-     */
+    |--------------------------------------------------------------------------
+    | AUTH
+    |--------------------------------------------------------------------------
+    */
 
-    const userId =
-      getUserIdFromRequest(request);
+    const user =
+      getAuthenticatedUser(
+        request
+      );
 
-    if (!userId) {
+    if (!user) {
       return NextResponse.json(
         {
           success: false,
@@ -480,8 +571,29 @@ export async function DELETE(
     }
 
     /*
-     * Get route parameters
-     */
+    |--------------------------------------------------------------------------
+    | ROLE
+    |--------------------------------------------------------------------------
+    */
+
+    if (user.role !== "USER") {
+      return NextResponse.json(
+        {
+          success: false,
+          message:
+            "Only guests can delete reviews.",
+        },
+        {
+          status: 403,
+        }
+      );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | PARAMS
+    |--------------------------------------------------------------------------
+    */
 
     const {
       slug,
@@ -489,11 +601,13 @@ export async function DELETE(
     } = await context.params;
 
     /*
-     * Validate review ID
-     */
+    |--------------------------------------------------------------------------
+    | VALIDATE REVIEW ID
+    |--------------------------------------------------------------------------
+    */
 
     if (
-      !mongoose.Types.ObjectId.isValid(
+      !Types.ObjectId.isValid(
         reviewId
       )
     ) {
@@ -510,8 +624,35 @@ export async function DELETE(
     }
 
     /*
-     * Find review
-     */
+    |--------------------------------------------------------------------------
+    | FIND HOTEL
+    |--------------------------------------------------------------------------
+    */
+
+    const hotel =
+      await Hotel.findOne({
+        slug,
+        isPublished: true,
+      });
+
+    if (!hotel) {
+      return NextResponse.json(
+        {
+          success: false,
+          message:
+            "Hotel not found.",
+        },
+        {
+          status: 404,
+        }
+      );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | FIND REVIEW
+    |--------------------------------------------------------------------------
+    */
 
     const review =
       await Review.findById(
@@ -532,52 +673,10 @@ export async function DELETE(
     }
 
     /*
-     * Security:
-     * Only review owner can delete
-     */
-
-    if (
-      review.userId.toString() !==
-      userId
-    ) {
-      return NextResponse.json(
-        {
-          success: false,
-          message:
-            "You can only delete your own review.",
-        },
-        {
-          status: 403,
-        }
-      );
-    }
-
-    /*
-     * Find hotel
-     */
-
-    const hotel =
-      await Hotel.findOne({
-        slug,
-      });
-
-    if (!hotel) {
-      return NextResponse.json(
-        {
-          success: false,
-          message:
-            "Hotel not found.",
-        },
-        {
-          status: 404,
-        }
-      );
-    }
-
-    /*
-     * Security:
-     * Review must belong to this hotel
-     */
+    |--------------------------------------------------------------------------
+    | HOTEL CHECK
+    |--------------------------------------------------------------------------
+    */
 
     if (
       review.hotelId.toString() !==
@@ -596,63 +695,69 @@ export async function DELETE(
     }
 
     /*
-     * Delete review
-     */
+    |--------------------------------------------------------------------------
+    | OWNER CHECK
+    |--------------------------------------------------------------------------
+    */
+
+    if (
+      review.userId.toString() !==
+      user.userId
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          message:
+            "You can only delete your own review.",
+        },
+        {
+          status: 403,
+        }
+      );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | DELETE
+    |--------------------------------------------------------------------------
+    */
 
     await Review.findByIdAndDelete(
       reviewId
     );
 
     /*
-     * Recalculate hotel rating
-     */
+    |--------------------------------------------------------------------------
+    | RECALCULATE HOTEL
+    |--------------------------------------------------------------------------
+    */
 
-    const publishedReviews =
-      await Review.find({
-        hotelId: hotel._id,
-        isPublished: true,
-      }).select("rating");
-
-    const reviewCount =
-      publishedReviews.length;
-
-    const totalRating =
-      publishedReviews.reduce(
-        (sum, item) =>
-          sum + item.rating,
-        0
+    const {
+      hotelRating,
+      reviewCount,
+    } =
+      await recalculateHotelRating(
+        hotel._id
       );
 
-    const hotelRating =
-      reviewCount > 0
-        ? Number(
-            (
-              totalRating /
-              reviewCount
-            ).toFixed(1)
-          )
-        : 0;
-
-    hotel.rating =
-      hotelRating;
-
-    hotel.reviewCount =
-      reviewCount;
-
-    await hotel.save();
-
     /*
-     * Success response
-     */
+    |--------------------------------------------------------------------------
+    | RESPONSE
+    |--------------------------------------------------------------------------
+    */
 
     return NextResponse.json(
       {
         success: true,
+
         message:
           "Review deleted successfully.",
+
         data: {
           reviewId,
+
           hotelRating,
+
           reviewCount,
         },
       },

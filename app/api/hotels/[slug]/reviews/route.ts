@@ -57,9 +57,17 @@ export async function GET(
     const formattedReviews = reviews.map((review) => ({
       _id: review._id.toString(),
 
-      hotelId: review.hotelId?.toString(),
+      hotelId: review.hotelId
+        ? review.hotelId.toString()
+        : undefined,
 
-      userId: review.userId?.toString(),
+      userId: review.userId
+        ? review.userId.toString()
+        : undefined,
+
+      bookingId: review.bookingId
+        ? review.bookingId.toString()
+        : undefined,
 
       rating: review.rating,
 
@@ -89,16 +97,11 @@ export async function GET(
 
       summary: {
         rating: hotel.rating || 0,
-
-        reviewCount:
-          hotel.reviewCount || 0,
+        reviewCount: hotel.reviewCount || 0,
       },
     });
   } catch (error) {
-    console.error(
-      "GET_REVIEWS_ERROR:",
-      error
-    );
+    console.error("GET_REVIEWS_ERROR:", error);
 
     return NextResponse.json(
       {
@@ -125,36 +128,24 @@ export async function POST(
 
     const { slug } = await params;
 
+    const now = new Date();
+
     /*
     |--------------------------------------------------------------------------
     | AUTHENTICATION
     |--------------------------------------------------------------------------
     */
 
-    /*
-     * Login route creates:
-     *
-     * bookinglk_token
-     *
-     * We also keep token/accessToken support
-     * in case older sessions still exist.
-     */
-
     const token =
-      request.cookies.get(
-        "bookinglk_token"
-      )?.value ||
+      request.cookies.get("bookinglk_token")?.value ||
       request.cookies.get("token")?.value ||
-      request.cookies.get(
-        "accessToken"
-      )?.value;
+      request.cookies.get("accessToken")?.value;
 
     if (!token) {
       return NextResponse.json(
         {
           success: false,
-          message:
-            "Please log in to write a review.",
+          message: "Please log in to write a review.",
         },
         { status: 401 }
       );
@@ -162,7 +153,7 @@ export async function POST(
 
     /*
     |--------------------------------------------------------------------------
-    | VERIFY TOKEN
+    | VERIFY JWT
     |--------------------------------------------------------------------------
     */
 
@@ -198,7 +189,26 @@ export async function POST(
 
     /*
     |--------------------------------------------------------------------------
-    | HOTEL
+    | VALIDATE USER ID
+    |--------------------------------------------------------------------------
+    */
+
+    if (
+      !user.userId ||
+      !Types.ObjectId.isValid(user.userId)
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Invalid user account.",
+        },
+        { status: 400 }
+      );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | FIND HOTEL
     |--------------------------------------------------------------------------
     */
 
@@ -219,40 +229,19 @@ export async function POST(
 
     /*
     |--------------------------------------------------------------------------
-    | VALIDATE USER ID
-    |--------------------------------------------------------------------------
-    */
-
-    if (
-      !user.userId ||
-      !Types.ObjectId.isValid(user.userId)
-    ) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Invalid user account.",
-        },
-        { status: 400 }
-      );
-    }
-
-    /*
-    |--------------------------------------------------------------------------
     | LOAD USER
     |--------------------------------------------------------------------------
     */
 
-    const dbUser =
-      await User.findById(
-        user.userId
-      ).lean();
+    const dbUser = await User.findById(
+      user.userId
+    ).lean();
 
     if (!dbUser) {
       return NextResponse.json(
         {
           success: false,
-          message:
-            "User account not found.",
+          message: "User account not found.",
         },
         { status: 404 }
       );
@@ -264,7 +253,23 @@ export async function POST(
     |--------------------------------------------------------------------------
     */
 
-    const body = await request.json();
+    let body: {
+      rating?: unknown;
+      title?: unknown;
+      comment?: unknown;
+    };
+
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Invalid request body.",
+        },
+        { status: 400 }
+      );
+    }
 
     const rating = Number(body.rating);
 
@@ -292,8 +297,7 @@ export async function POST(
       return NextResponse.json(
         {
           success: false,
-          message:
-            "Rating must be between 1 and 5.",
+          message: "Rating must be between 1 and 5.",
         },
         { status: 400 }
       );
@@ -320,8 +324,7 @@ export async function POST(
       return NextResponse.json(
         {
           success: false,
-          message:
-            "Review is too long.",
+          message: "Review is too long.",
         },
         { status: 400 }
       );
@@ -337,8 +340,7 @@ export async function POST(
       return NextResponse.json(
         {
           success: false,
-          message:
-            "Review title is too long.",
+          message: "Review title is too long.",
         },
         { status: 400 }
       );
@@ -350,11 +352,10 @@ export async function POST(
     |--------------------------------------------------------------------------
     */
 
-    const existingReview =
-      await Review.findOne({
-        hotelId: hotel._id,
-        userId: user.userId,
-      });
+    const existingReview = await Review.findOne({
+      hotelId: hotel._id,
+      userId: user.userId,
+    });
 
     if (existingReview) {
       return NextResponse.json(
@@ -369,45 +370,87 @@ export async function POST(
 
     /*
     |--------------------------------------------------------------------------
-    | VERIFY COMPLETED STAY
+    | NORMALIZE EMAIL
     |--------------------------------------------------------------------------
-    |
-    | IMPORTANT:
-    |
-    | A user can review ONLY if they have a
-    | COMPLETED booking for this hotel.
-    |
-    | CONFIRMED is NOT enough.
-    |
     */
 
-    const completedBooking =
-      await Booking.findOne({
-        hotelId: hotel._id,
-
-        $or: [
-          {
-            userId: user.userId,
-          },
-          {
-            "guest.email": user.email,
-          },
-        ],
-
-        status: "COMPLETED",
-      })
-        .sort({
-          createdAt: -1,
-        })
-        .lean();
+    const userEmail =
+      typeof user.email === "string"
+        ? user.email.trim().toLowerCase()
+        : "";
 
     /*
     |--------------------------------------------------------------------------
-    | NO COMPLETED BOOKING
+    | FIND ELIGIBLE BOOKING
+    |--------------------------------------------------------------------------
+    |
+    | Booking must:
+    |
+    | 1. Belong to this hotel
+    |
+    | 2. Belong to the current user
+    |    OR have matching guest email
+    |
+    | 3. Be COMPLETED
+    |    OR be CONFIRMED with checkout already passed
+    |
+    */
+
+    const userConditions: Record<string, unknown>[] = [
+      {
+        userId: new Types.ObjectId(user.userId),
+      },
+    ];
+
+    if (userEmail) {
+      userConditions.push({
+        "guest.email": userEmail,
+      });
+    }
+
+    const stayConditions: Record<string, unknown>[] = [
+      {
+        status: "COMPLETED",
+      },
+      {
+        status: "CONFIRMED",
+        checkOut: {
+          $lte: now,
+        },
+      },
+    ];
+
+    /*
+    |--------------------------------------------------------------------------
+    | ELIGIBLE BOOKING QUERY
     |--------------------------------------------------------------------------
     */
 
-    if (!completedBooking) {
+    const eligibleBooking = await Booking.findOne({
+      hotelId: hotel._id,
+
+      $and: [
+        {
+          $or: userConditions,
+        },
+        {
+          $or: stayConditions,
+        },
+      ],
+    })
+      .sort({
+        checkOut: -1,
+        createdAt: -1,
+      })
+      .lean();
+
+    /*
+    |--------------------------------------------------------------------------
+    | NO ELIGIBLE BOOKING
+    |--------------------------------------------------------------------------
+    */
+
+    if (!eligibleBooking) {
       return NextResponse.json(
         {
           success: false,
@@ -420,27 +463,53 @@ export async function POST(
 
     /*
     |--------------------------------------------------------------------------
+    | AUTO COMPLETE BOOKING
+    |--------------------------------------------------------------------------
+    */
+
+    if (
+      eligibleBooking.status === "CONFIRMED" &&
+      eligibleBooking.checkOut &&
+      new Date(
+        eligibleBooking.checkOut
+      ).getTime() <= now.getTime()
+    ) {
+      try {
+        await Booking.findByIdAndUpdate(
+          eligibleBooking._id,
+          {
+            $set: {
+              status: "COMPLETED",
+            },
+          }
+        );
+      } catch (statusError) {
+        console.error(
+          "AUTO_COMPLETE_BOOKING_ERROR:",
+          statusError
+        );
+      }
+    }
+
+    /*
+    |--------------------------------------------------------------------------
     | USER NAME
     |--------------------------------------------------------------------------
     */
 
-    const userRecord = dbUser as {
-      firstName?: string;
-      lastName?: string;
-      name?: string;
-      email?: string;
-    };
-
     const userName =
       [
-        userRecord.firstName,
-        userRecord.lastName,
+        dbUser.firstName,
+        dbUser.lastName,
       ]
-        .filter(Boolean)
+        .filter(
+          (value): value is string =>
+            typeof value === "string" &&
+            value.trim().length > 0
+        )
         .join(" ")
         .trim() ||
-      userRecord.name ||
-      userRecord.email ||
+      dbUser.email ||
       user.email ||
       "Guest";
 
@@ -450,32 +519,25 @@ export async function POST(
     |--------------------------------------------------------------------------
     */
 
-    const review =
-      await Review.create({
-        userId: user.userId,
+    const review = await Review.create({
+      userId: new Types.ObjectId(user.userId),
 
-        hotelId: hotel._id,
+      hotelId: hotel._id,
 
-        bookingId:
-          completedBooking._id,
+      bookingId: eligibleBooking._id,
 
-        rating,
+      rating,
 
-        title,
+      title,
 
-        comment,
+      comment,
 
-        userName,
+      userName,
 
-        isPublished: true,
+      isPublished: true,
 
-        /*
-         * Because a COMPLETED booking was found,
-         * this review is automatically verified.
-         */
-
-        isVerifiedStay: true,
-      });
+      isVerifiedStay: true,
+    });
 
     /*
     |--------------------------------------------------------------------------
@@ -483,39 +545,36 @@ export async function POST(
     |--------------------------------------------------------------------------
     */
 
-    const ratingStats =
-      await Review.aggregate([
-        {
-          $match: {
-            hotelId: hotel._id,
-            isPublished: true,
+    const ratingStats = await Review.aggregate([
+      {
+        $match: {
+          hotelId: hotel._id,
+          isPublished: true,
+        },
+      },
+      {
+        $group: {
+          _id: null,
+
+          averageRating: {
+            $avg: "$rating",
+          },
+
+          reviewCount: {
+            $sum: 1,
           },
         },
+      },
+    ]);
 
-        {
-          $group: {
-            _id: null,
-
-            averageRating: {
-              $avg: "$rating",
-            },
-
-            reviewCount: {
-              $sum: 1,
-            },
-          },
-        },
-      ]);
-
-    const stats =
-      ratingStats[0] || {
-        averageRating: rating,
-        reviewCount: 1,
-      };
+    const stats = ratingStats[0] || {
+      averageRating: rating,
+      reviewCount: 1,
+    };
 
     const newRating =
       Math.round(
-        stats.averageRating * 10
+        Number(stats.averageRating) * 10
       ) / 10;
 
     /*
@@ -529,9 +588,7 @@ export async function POST(
       {
         $set: {
           rating: newRating,
-
-          reviewCount:
-            stats.reviewCount,
+          reviewCount: stats.reviewCount,
         },
       }
     );
@@ -558,41 +615,42 @@ export async function POST(
           userId:
             review.userId.toString(),
 
+          bookingId: review.bookingId
+            ? review.bookingId.toString()
+            : undefined,
+
           rating: review.rating,
 
           title: review.title || "",
 
           comment: review.comment,
 
-          userName:
-            review.userName,
+          userName: review.userName,
 
           isVerifiedStay: true,
 
           isVerified: true,
 
-          createdAt:
-            review.createdAt,
+          createdAt: review.createdAt,
+
+          updatedAt: review.updatedAt,
 
           hotelRating: newRating,
 
-          reviewCount:
-            stats.reviewCount,
+          reviewCount: stats.reviewCount,
         },
       },
-      { status: 201 }
+      {
+        status: 201,
+      }
     );
   } catch (error) {
-    console.error(
-      "POST_REVIEW_ERROR:",
-      error
-    );
+    console.error("POST_REVIEW_ERROR:", error);
 
     return NextResponse.json(
       {
         success: false,
-        message:
-          "Failed to submit review.",
+        message: "Failed to submit review.",
       },
       { status: 500 }
     );
