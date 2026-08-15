@@ -22,7 +22,7 @@ const groups = [
     title: "Support",
     links: [
       ["Help Center", "/help"],
-      ["Cancellation", "/cancellation"],
+      ["Cancellation", "/Cancellation"],
       ["Safety", "/safety"],
     ],
   },
