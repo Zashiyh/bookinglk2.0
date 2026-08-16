@@ -7,6 +7,7 @@ import {
   CalendarDays,
   Check,
   CreditCard,
+  LogIn,
   MapPin,
   ShieldCheck,
   Star,
@@ -81,6 +82,16 @@ interface Room {
   isActive: boolean;
 }
 
+interface AuthUser {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  role: string;
+  avatar: string | null;
+}
+
 function formatPrice(price: number) {
   return new Intl.NumberFormat("en-LK").format(price);
 }
@@ -115,9 +126,7 @@ function formatRoomType(type: string) {
     );
 }
 
-function formatBeds(
-  beds: Room["beds"]
-) {
+function formatBeds(beds: Room["beds"]) {
   return beds
     .map(
       (bed) =>
@@ -131,6 +140,12 @@ function formatBeds(
 }
 
 export default function CheckoutPage() {
+  /*
+   * ------------------------------------------------
+   * BOOKING DATA
+   * ------------------------------------------------
+   */
+
   const [hotelSlug, setHotelSlug] =
     useState("");
 
@@ -148,6 +163,27 @@ export default function CheckoutPage() {
 
   const [error, setError] =
     useState("");
+
+  /*
+   * ------------------------------------------------
+   * AUTH
+   * ------------------------------------------------
+   */
+
+  const [authLoading, setAuthLoading] =
+    useState(true);
+
+  const [isAuthenticated, setIsAuthenticated] =
+    useState(false);
+
+  const [user, setUser] =
+    useState<AuthUser | null>(null);
+
+  /*
+   * ------------------------------------------------
+   * BOOKING FORM
+   * ------------------------------------------------
+   */
 
   const [checkIn, setCheckIn] =
     useState("");
@@ -182,6 +218,12 @@ export default function CheckoutPage() {
   const [submitError, setSubmitError] =
     useState("");
 
+  /*
+   * ------------------------------------------------
+   * GET URL PARAMETERS
+   * ------------------------------------------------
+   */
+
   useEffect(() => {
     const searchParams =
       new URLSearchParams(
@@ -198,13 +240,131 @@ export default function CheckoutPage() {
       setError(
         "Invalid booking link."
       );
+
       setLoading(false);
+
       return;
     }
 
     setHotelSlug(hotelParam);
     setRoomId(roomParam);
   }, []);
+
+  /*
+   * ------------------------------------------------
+   * CHECK AUTHENTICATION
+   * ------------------------------------------------
+   *
+   * Uses:
+   * GET /api/auth/me
+   *
+   * Your API checks:
+   * bookinglk_token
+   */
+
+  useEffect(() => {
+    async function checkAuthentication() {
+      try {
+        setAuthLoading(true);
+
+        const response =
+          await fetch(
+            "/api/auth/me",
+            {
+              method: "GET",
+              credentials: "include",
+              cache: "no-store",
+            }
+          );
+
+        if (!response.ok) {
+          setIsAuthenticated(false);
+          setUser(null);
+
+          return;
+        }
+
+        const result =
+          await response.json();
+
+        if (
+          !result.success ||
+          !result.data
+        ) {
+          setIsAuthenticated(false);
+          setUser(null);
+
+          return;
+        }
+
+        setUser(result.data);
+        setIsAuthenticated(true);
+
+        /*
+         * Auto-fill guest details
+         * from logged-in account.
+         */
+
+        if (
+          typeof result.data.firstName ===
+            "string" &&
+          result.data.firstName
+        ) {
+          setFirstName(
+            result.data.firstName
+          );
+        }
+
+        if (
+          typeof result.data.lastName ===
+            "string" &&
+          result.data.lastName
+        ) {
+          setLastName(
+            result.data.lastName
+          );
+        }
+
+        if (
+          typeof result.data.email ===
+            "string" &&
+          result.data.email
+        ) {
+          setEmail(
+            result.data.email
+          );
+        }
+
+        if (
+          typeof result.data.phone ===
+            "string" &&
+          result.data.phone
+        ) {
+          setPhone(
+            result.data.phone
+          );
+        }
+      } catch (error) {
+        console.error(
+          "AUTH CHECK ERROR:",
+          error
+        );
+
+        setIsAuthenticated(false);
+        setUser(null);
+      } finally {
+        setAuthLoading(false);
+      }
+    }
+
+    checkAuthentication();
+  }, []);
+
+  /*
+   * ------------------------------------------------
+   * LOAD HOTEL + ROOM
+   * ------------------------------------------------
+   */
 
   useEffect(() => {
     if (!hotelSlug || !roomId) {
@@ -215,6 +375,10 @@ export default function CheckoutPage() {
       try {
         setLoading(true);
         setError("");
+
+        /*
+         * HOTEL
+         */
 
         const hotelResponse =
           await fetch(
@@ -244,6 +408,10 @@ export default function CheckoutPage() {
           hotelResult.data;
 
         setHotel(hotelData);
+
+        /*
+         * ROOMS
+         */
 
         const roomsResponse =
           await fetch(
@@ -305,6 +473,12 @@ export default function CheckoutPage() {
     loadBookingData();
   }, [hotelSlug, roomId]);
 
+  /*
+   * ------------------------------------------------
+   * PRICE CALCULATIONS
+   * ------------------------------------------------
+   */
+
   const nights = useMemo(
     () =>
       calculateNights(
@@ -321,11 +495,19 @@ export default function CheckoutPage() {
 
   const serviceFee =
     roomTotal > 0
-      ? Math.round(roomTotal * 0.05)
+      ? Math.round(
+          roomTotal * 0.05
+        )
       : 0;
 
   const total =
     roomTotal + serviceFee;
+
+  /*
+   * ------------------------------------------------
+   * TODAY
+   * ------------------------------------------------
+   */
 
   function getToday() {
     const today = new Date();
@@ -344,6 +526,27 @@ export default function CheckoutPage() {
     return `${year}-${month}-${day}`;
   }
 
+  /*
+   * ------------------------------------------------
+   * LOGIN REDIRECT
+   * ------------------------------------------------
+   */
+
+  function getLoginUrl() {
+    const currentUrl =
+      `${window.location.pathname}${window.location.search}`;
+
+    return `/login?redirect=${encodeURIComponent(
+      currentUrl
+    )}`;
+  }
+
+  /*
+   * ------------------------------------------------
+   * SUBMIT BOOKING
+   * ------------------------------------------------
+   */
+
   async function handleSubmit(
     event: React.FormEvent<HTMLFormElement>
   ) {
@@ -351,10 +554,27 @@ export default function CheckoutPage() {
 
     setSubmitError("");
 
+    /*
+     * EXTRA AUTH PROTECTION
+     *
+     * Even though the UI is hidden when
+     * logged out, check again before
+     * submitting.
+     */
+
+    if (!isAuthenticated) {
+      setSubmitError(
+        "Please log in to continue with your booking."
+      );
+
+      return;
+    }
+
     if (!hotel || !room) {
       setSubmitError(
         "Booking information is missing."
       );
+
       return;
     }
 
@@ -362,6 +582,7 @@ export default function CheckoutPage() {
       setSubmitError(
         "Please select your check-in and check-out dates."
       );
+
       return;
     }
 
@@ -369,6 +590,7 @@ export default function CheckoutPage() {
       setSubmitError(
         "Check-out must be after check-in."
       );
+
       return;
     }
 
@@ -376,6 +598,7 @@ export default function CheckoutPage() {
       setSubmitError(
         "Please select at least one guest."
       );
+
       return;
     }
 
@@ -386,6 +609,7 @@ export default function CheckoutPage() {
       setSubmitError(
         `This room allows up to ${room.maxGuests} guests.`
       );
+
       return;
     }
 
@@ -398,6 +622,7 @@ export default function CheckoutPage() {
       setSubmitError(
         "Please complete all guest details."
       );
+
       return;
     }
 
@@ -405,45 +630,76 @@ export default function CheckoutPage() {
       setSubmitError(
         "Please accept the booking terms."
       );
+
       return;
     }
 
     try {
       setSubmitting(true);
 
+      /*
+       * IMPORTANT:
+       *
+       * credentials: "include"
+       * sends bookinglk_token cookie
+       * to the API.
+       */
+
       const response =
         await fetch(
           "/api/bookings",
           {
             method: "POST",
+
+            credentials:
+              "include",
+
             headers: {
               "Content-Type":
                 "application/json",
             },
+
             body: JSON.stringify({
-              hotelId: hotel._id,
-              roomId: room._id,
+              hotelId:
+                hotel._id,
+
+              roomId:
+                room._id,
+
               checkIn,
+
               checkOut,
+
               guests,
+
               guest: {
                 firstName:
                   firstName.trim(),
+
                 lastName:
                   lastName.trim(),
+
                 email:
                   email.trim(),
+
                 phone:
                   phone.trim(),
               },
+
               specialRequest:
                 specialRequest.trim(),
+
               nights,
+
               roomPrice:
                 room.pricePerNight,
+
               roomTotal,
+
               serviceFee,
+
               total,
+
               currency: "LKR",
             }),
           }
@@ -452,14 +708,39 @@ export default function CheckoutPage() {
       const result =
         await response.json();
 
-      if (!response.ok || !result.success) {
+      if (
+        response.status === 401
+      ) {
+        setIsAuthenticated(
+          false
+        );
+
+        setUser(null);
+
+        setSubmitError(
+          "Your session has expired. Please log in again."
+        );
+
+        return;
+      }
+
+      if (
+        !response.ok ||
+        !result.success
+      ) {
         throw new Error(
           result.message ||
             "Booking could not be created."
         );
       }
 
-      if (result.data?._id) {
+      /*
+       * SUCCESS
+       */
+
+      if (
+        result.data?._id
+      ) {
         window.location.href =
           `/booking/confirmation/${result.data._id}`;
       } else {
@@ -478,6 +759,113 @@ export default function CheckoutPage() {
       setSubmitting(false);
     }
   }
+
+  /*
+   * ------------------------------------------------
+   * AUTH LOADING
+   * ------------------------------------------------
+   */
+
+  if (authLoading) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-[#fafafa] dark:bg-[#050505]">
+        <div className="w-full max-w-md px-6 text-center">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-[#D4AF37]/10">
+            <ShieldCheck className="h-7 w-7 animate-pulse text-[#D4AF37]" />
+          </div>
+
+          <div className="mt-6 h-6 w-48 animate-pulse rounded-full bg-zinc-200 dark:bg-white/10 mx-auto" />
+
+          <div className="mt-3 h-4 w-72 animate-pulse rounded-full bg-zinc-200 dark:bg-white/10 mx-auto" />
+        </div>
+      </main>
+    );
+  }
+
+  /*
+   * ------------------------------------------------
+   * NOT LOGGED IN
+   * ------------------------------------------------
+   */
+
+  if (!isAuthenticated) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-[#fafafa] px-4 text-zinc-950 dark:bg-[#050505] dark:text-white">
+        <div className="w-full max-w-lg">
+          <div className="overflow-hidden rounded-[2rem] border border-zinc-200 bg-white shadow-xl shadow-black/5 dark:border-white/10 dark:bg-[#111111]">
+            <div className="relative overflow-hidden px-6 pb-8 pt-10 text-center sm:px-10">
+              {/* Gold glow */}
+
+              <div className="pointer-events-none absolute left-1/2 top-0 h-40 w-40 -translate-x-1/2 rounded-full bg-[#D4AF37]/20 blur-3xl" />
+
+              <div className="relative mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-[#D4AF37]/10 ring-1 ring-[#D4AF37]/20">
+                <LogIn className="h-7 w-7 text-[#B8860B] dark:text-[#F5D76E]" />
+              </div>
+
+              <p className="relative mt-6 text-sm font-medium text-[#B8860B] dark:text-[#F5D76E]">
+                BookingLK
+              </p>
+
+              <h1 className="relative mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">
+                Log in to continue
+              </h1>
+
+              <p className="relative mx-auto mt-3 max-w-md text-sm leading-6 text-zinc-500 dark:text-zinc-400">
+                You need to be logged in to
+                complete a hotel booking. Your
+                booking will be securely linked
+                to your BookingLK account.
+              </p>
+
+              <div className="relative mt-7 space-y-3">
+                <Link
+                  href={getLoginUrl()}
+                  className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#D4AF37] px-6 py-4 text-sm font-semibold text-black transition hover:bg-[#F5D76E] active:scale-[0.99]"
+                >
+                  <LogIn className="h-4 w-4" />
+                  Log in to your account
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+
+                <Link
+                  href="/register"
+                  className="flex w-full items-center justify-center rounded-2xl border border-zinc-200 bg-white px-6 py-4 text-sm font-semibold transition hover:bg-zinc-50 dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
+                >
+                  Create an account
+                </Link>
+              </div>
+
+              <Link
+                href={
+                  hotel
+                    ? `/hotels/${hotel.slug}`
+                    : "/hotels"
+                }
+                className="relative mt-6 inline-flex items-center gap-2 text-sm font-medium text-zinc-500 transition hover:text-black dark:text-zinc-400 dark:hover:text-white"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Back to hotel
+              </Link>
+            </div>
+
+            <div className="border-t border-zinc-200 bg-zinc-50 px-6 py-5 dark:border-white/10 dark:bg-white/[0.03]">
+              <div className="flex items-center justify-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
+                <ShieldCheck className="h-4 w-4 text-[#D4AF37]" />
+
+                Secure BookingLK reservation
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  /*
+   * ------------------------------------------------
+   * HOTEL / ROOM LOADING
+   * ------------------------------------------------
+   */
 
   if (loading) {
     return (
@@ -499,7 +887,17 @@ export default function CheckoutPage() {
     );
   }
 
-  if (error || !hotel || !room) {
+  /*
+   * ------------------------------------------------
+   * ERROR
+   * ------------------------------------------------
+   */
+
+  if (
+    error ||
+    !hotel ||
+    !room
+  ) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-[#fafafa] px-4 dark:bg-[#050505]">
         <div className="w-full max-w-lg rounded-3xl border border-zinc-200 bg-white p-10 text-center shadow-sm dark:border-white/10 dark:bg-[#111111]">
@@ -528,9 +926,16 @@ export default function CheckoutPage() {
     );
   }
 
+  /*
+   * ------------------------------------------------
+   * AUTHENTICATED CHECKOUT
+   * ------------------------------------------------
+   */
+
   return (
     <main className="min-h-screen bg-[#fafafa] text-zinc-950 dark:bg-[#050505] dark:text-white">
       {/* Header */}
+
       <header className="border-b border-zinc-200 bg-white/80 backdrop-blur-xl dark:border-white/10 dark:bg-[#050505]/80">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-5 sm:px-6 lg:px-8">
           <Link
@@ -541,14 +946,36 @@ export default function CheckoutPage() {
             Back to hotel
           </Link>
 
-          <div className="flex items-center gap-2 text-sm font-semibold">
-            <ShieldCheck className="h-5 w-5 text-[#D4AF37]" />
-            Secure Booking
+          <div className="flex items-center gap-4">
+            {user && (
+              <div className="hidden items-center gap-2 sm:flex">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#D4AF37]/15 text-xs font-semibold text-[#B8860B] dark:text-[#F5D76E]">
+                  {user.firstName
+                    ?.charAt(0)
+                    ?.toUpperCase() ||
+                    user.email
+                      ?.charAt(0)
+                      ?.toUpperCase() ||
+                    "U"}
+                </div>
+
+                <span className="max-w-[160px] truncate text-sm font-medium">
+                  {user.firstName ||
+                    user.email}
+                </span>
+              </div>
+            )}
+
+            <div className="flex items-center gap-2 text-sm font-semibold">
+              <ShieldCheck className="h-5 w-5 text-[#D4AF37]" />
+              Secure Booking
+            </div>
           </div>
         </div>
       </header>
 
       {/* Page */}
+
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-12">
         <div className="mb-10">
           <p className="text-sm font-medium text-[#B8860B] dark:text-[#F5D76E]">
@@ -560,17 +987,20 @@ export default function CheckoutPage() {
           </h1>
 
           <p className="mt-3 text-zinc-500 dark:text-zinc-400">
-            Enter your stay details and guest information.
+            Enter your stay details and
+            guest information.
           </p>
         </div>
 
         <div className="grid gap-8 lg:grid-cols-[1fr_400px]">
           {/* LEFT */}
+
           <form
             onSubmit={handleSubmit}
             className="space-y-6"
           >
             {/* Stay Details */}
+
             <section className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-[#111111] sm:p-8">
               <div className="flex items-start gap-4">
                 <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#D4AF37]/10">
@@ -583,7 +1013,8 @@ export default function CheckoutPage() {
                   </h2>
 
                   <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-                    Select your dates and number of guests.
+                    Select your dates and
+                    number of guests.
                   </p>
                 </div>
               </div>
@@ -605,7 +1036,8 @@ export default function CheckoutPage() {
 
                       if (
                         checkOut &&
-                        event.target.value >=
+                        event.target
+                          .value >=
                           checkOut
                       ) {
                         setCheckOut("");
@@ -705,6 +1137,7 @@ export default function CheckoutPage() {
             </section>
 
             {/* Guest Details */}
+
             <section className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-[#111111] sm:p-8">
               <div className="flex items-start gap-4">
                 <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#D4AF37]/10">
@@ -717,7 +1150,8 @@ export default function CheckoutPage() {
                   </h2>
 
                   <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-                    Who should we prepare the reservation for?
+                    Who should we prepare
+                    the reservation for?
                   </p>
                 </div>
               </div>
@@ -801,6 +1235,7 @@ export default function CheckoutPage() {
               <div className="mt-5">
                 <label className="text-sm font-medium">
                   Special request
+
                   <span className="ml-2 font-normal text-zinc-400">
                     Optional
                   </span>
@@ -823,6 +1258,7 @@ export default function CheckoutPage() {
             </section>
 
             {/* Payment */}
+
             <section className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-[#111111] sm:p-8">
               <div className="flex items-start gap-4">
                 <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#D4AF37]/10">
@@ -835,7 +1271,9 @@ export default function CheckoutPage() {
                   </h2>
 
                   <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-                    Payment integration will be connected next.
+                    Payment integration
+                    will be connected
+                    next.
                   </p>
                 </div>
               </div>
@@ -850,7 +1288,9 @@ export default function CheckoutPage() {
                     </p>
 
                     <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-                      Your payment details will be handled securely.
+                      Your payment details
+                      will be handled
+                      securely.
                     </p>
                   </div>
                 </div>
@@ -858,6 +1298,7 @@ export default function CheckoutPage() {
             </section>
 
             {/* Terms */}
+
             <section className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-[#111111]">
               <label className="flex cursor-pointer items-start gap-3">
                 <input
@@ -874,8 +1315,8 @@ export default function CheckoutPage() {
                 <span className="text-sm leading-6 text-zinc-600 dark:text-zinc-400">
                   I agree to BookingLK's
                   booking terms,
-                  cancellation policy and
-                  property rules.
+                  cancellation policy
+                  and property rules.
                 </span>
               </label>
 
@@ -905,9 +1346,11 @@ export default function CheckoutPage() {
           </form>
 
           {/* RIGHT SUMMARY */}
+
           <aside className="lg:sticky lg:top-24 lg:h-fit">
             <div className="overflow-hidden rounded-3xl border border-zinc-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#111111]">
               {/* Hotel image */}
+
               <div className="relative h-56">
                 <img
                   src={
@@ -933,6 +1376,7 @@ export default function CheckoutPage() {
 
               <div className="p-6">
                 {/* Location */}
+
                 <div className="flex items-center gap-2 text-sm text-zinc-500 dark:text-zinc-400">
                   <MapPin className="h-4 w-4 text-[#D4AF37]" />
 
@@ -941,20 +1385,24 @@ export default function CheckoutPage() {
                 </div>
 
                 {/* Rating */}
+
                 <div className="mt-4 flex items-center gap-2">
                   <div className="flex items-center gap-1 rounded-full bg-[#D4AF37]/10 px-2.5 py-1 text-sm font-semibold text-[#B8860B] dark:text-[#F5D76E]">
                     <Star className="h-4 w-4 fill-current" />
+
                     {hotel.rating.toFixed(
                       1
                     )}
                   </div>
 
                   <span className="text-xs text-zinc-500">
-                    {hotel.reviewCount} reviews
+                    {hotel.reviewCount}{" "}
+                    reviews
                   </span>
                 </div>
 
                 {/* Room */}
+
                 <div className="mt-6 rounded-2xl bg-zinc-50 p-4 dark:bg-white/5">
                   <div className="flex gap-3">
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white dark:bg-[#181818]">
@@ -995,9 +1443,7 @@ export default function CheckoutPage() {
 
                     {room.size && (
                       <>
-                        <span>
-                          •
-                        </span>
+                        <span>•</span>
 
                         <span>
                           {room.size} m²
@@ -1008,6 +1454,7 @@ export default function CheckoutPage() {
                 </div>
 
                 {/* Dates */}
+
                 {checkIn &&
                   checkOut && (
                     <div className="mt-5 grid grid-cols-2 gap-3">
@@ -1034,6 +1481,7 @@ export default function CheckoutPage() {
                   )}
 
                 {/* Price */}
+
                 <div className="mt-6 border-t border-zinc-200 pt-6 dark:border-white/10">
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-zinc-500">
@@ -1092,13 +1540,16 @@ export default function CheckoutPage() {
                 </div>
 
                 {/* Trust */}
+
                 <div className="mt-6 flex items-start gap-3 rounded-2xl bg-[#D4AF37]/5 p-4">
                   <Check className="mt-0.5 h-4 w-4 shrink-0 text-[#D4AF37]" />
 
                   <p className="text-xs leading-5 text-zinc-500 dark:text-zinc-400">
-                    Free cancellation policies
-                    depend on the selected
-                    property's booking terms.
+                    Free cancellation
+                    policies depend on
+                    the selected
+                    property's booking
+                    terms.
                   </p>
                 </div>
               </div>
