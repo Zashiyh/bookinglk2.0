@@ -55,13 +55,7 @@ type SortOption =
 
 type Hotel = HotelCardData & {
   _id: string;
-
   name: string;
-
-  /*
-   * IMPORTANT
-   * Hotel details page uses slug.
-   */
   slug: string;
 
   description?: string;
@@ -272,16 +266,14 @@ export default function ExplorePage() {
           ? result.data
           : [];
 
-      /*
-       * Only keep hotels that have
-       * a valid slug.
-       */
+      /* ONLY VALID HOTELS */
+
       const validHotels =
         apiHotels.filter(
           (hotel: Hotel) =>
             Boolean(
               hotel?._id &&
-              hotel?.slug
+                hotel?.slug
             )
         );
 
@@ -379,7 +371,7 @@ export default function ExplorePage() {
   };
 
   /* =======================================================
-     PROPERTY TYPE
+     PROPERTY TYPE CHANGE
   ======================================================= */
 
   const handlePropertyTypeChange = (
@@ -548,7 +540,7 @@ export default function ExplorePage() {
 
   /* =======================================================
      MAP HOTELS
-========================================================= */
+  ======================================================= */
 
   const mapHotels =
     useMemo(() => {
@@ -591,10 +583,6 @@ export default function ExplorePage() {
         .map((hotel) => ({
           _id: hotel._id,
 
-          /*
-           * IMPORTANT
-           * Pass slug to map.
-           */
           slug: hotel.slug,
 
           name: hotel.name,
@@ -669,9 +657,7 @@ export default function ExplorePage() {
 
     setPage(1);
 
-    setSelectedHotelId(
-      null
-    );
+    setSelectedHotelId(null);
   };
 
   /* =======================================================
@@ -691,20 +677,72 @@ export default function ExplorePage() {
   };
 
   /* =======================================================
+     PAGE SCROLL
+  ======================================================= */
+
+  const scrollToTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+  };
+
+  /* =======================================================
      RENDER
   ======================================================= */
 
   return (
-    <main className="min-h-screen bg-[var(--background)] text-[var(--foreground)]">
-      <Navbar />
+    <main
+      className="
+        relative
+        isolate
+        min-h-screen
+        overflow-x-clip
+        bg-[var(--background)]
+        text-[var(--foreground)]
+      "
+    >
+      {/* ===================================================
+          NAVBAR
+      =================================================== */}
 
-      {/* =====================================================
+      <div
+        className="
+          relative
+          z-[9999]
+          isolate
+        "
+      >
+        <Navbar />
+      </div>
+
+      {/* ===================================================
           HERO
-      ====================================================== */}
+      =================================================== */}
 
-      <section className="relative overflow-hidden border-b border-black/5 dark:border-white/5">
-        <div className="absolute inset-0">
-          <div className="absolute inset-0 bg-gradient-to-br from-[#080808] via-[#111111] to-[#050505]" />
+      <section
+        className="
+          relative
+          z-10
+          overflow-hidden
+          border-b
+          border-black/5
+          dark:border-white/5
+        "
+      >
+        {/* BACKGROUND */}
+
+        <div className="absolute inset-0 pointer-events-none">
+          <div
+            className="
+              absolute
+              inset-0
+              bg-gradient-to-br
+              from-[#080808]
+              via-[#111111]
+              to-[#050505]
+            "
+          />
 
           <motion.div
             animate={{
@@ -730,7 +768,16 @@ export default function ExplorePage() {
                 Infinity,
               ease: "easeInOut",
             }}
-            className="absolute left-[5%] top-[10%] h-72 w-72 rounded-full bg-[#D4AF37]/15 blur-[120px]"
+            className="
+              absolute
+              left-[5%]
+              top-[10%]
+              h-72
+              w-72
+              rounded-full
+              bg-[#D4AF37]/15
+              blur-[120px]
+            "
           />
 
           <motion.div
@@ -757,11 +804,37 @@ export default function ExplorePage() {
                 Infinity,
               ease: "easeInOut",
             }}
-            className="absolute right-[5%] top-[20%] h-96 w-96 rounded-full bg-white/[0.04] blur-[130px]"
+            className="
+              absolute
+              right-[5%]
+              top-[20%]
+              h-96
+              w-96
+              rounded-full
+              bg-white/[0.04]
+              blur-[130px]
+            "
           />
         </div>
 
-        <div className="relative z-10 mx-auto max-w-7xl px-5 pb-16 pt-32 sm:px-8 lg:px-10 lg:pb-20">
+        {/* HERO CONTENT */}
+
+        <div
+          className="
+            relative
+            z-10
+            mx-auto
+            max-w-7xl
+            px-5
+            pb-16
+            pt-32
+            sm:px-8
+            lg:px-10
+            lg:pb-20
+          "
+        >
+          {/* BACK BUTTON */}
+
           <motion.div
             initial={{
               opacity: 0,
@@ -781,12 +854,24 @@ export default function ExplorePage() {
               onClick={() =>
                 window.history.back()
               }
-              className="inline-flex items-center gap-2 text-xs font-semibold text-white/50 transition hover:text-white"
+              className="
+                inline-flex
+                items-center
+                gap-2
+                text-xs
+                font-semibold
+                text-white/50
+                transition
+                hover:text-white
+              "
             >
               <ArrowLeft className="h-4 w-4" />
+
               Back
             </button>
           </motion.div>
+
+          {/* TITLE */}
 
           <motion.div
             initial={{
@@ -801,25 +886,65 @@ export default function ExplorePage() {
               duration: 0.7,
             }}
           >
-            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.06] px-4 py-2 text-xs font-semibold text-white/70 backdrop-blur-xl">
+            <div
+              className="
+                mb-4
+                inline-flex
+                items-center
+                gap-2
+                rounded-full
+                border
+                border-white/10
+                bg-white/[0.06]
+                px-4
+                py-2
+                text-xs
+                font-semibold
+                text-white/70
+                backdrop-blur-xl
+              "
+            >
               <MapPin className="h-4 w-4 text-[#F5D76E]" />
+
               Explore Sri Lanka
             </div>
 
-            <h1 className="max-w-4xl text-4xl font-black tracking-[-0.05em] text-white sm:text-6xl lg:text-7xl">
+            <h1
+              className="
+                max-w-4xl
+                text-4xl
+                font-black
+                tracking-[-0.05em]
+                text-white
+                sm:text-6xl
+                lg:text-7xl
+              "
+            >
               Find your
+
               <span className="block text-[#F5D76E]">
                 perfect stay.
               </span>
             </h1>
 
-            <p className="mt-5 max-w-2xl text-sm leading-7 text-white/50 sm:text-base">
+            <p
+              className="
+                mt-5
+                max-w-2xl
+                text-sm
+                leading-7
+                text-white/50
+                sm:text-base
+              "
+            >
               Discover hotels,
               resorts, villas
               and unique stays
               across Sri Lanka.
             </p>
           </motion.div>
+
+          {/* SEARCH */}
 
           <motion.div
             initial={{
@@ -834,7 +959,11 @@ export default function ExplorePage() {
               duration: 0.7,
               delay: 0.15,
             }}
-            className="mt-10"
+            className="
+              relative
+              z-50
+              mt-10
+            "
           >
             <ExploreSearch
               location={
@@ -854,16 +983,46 @@ export default function ExplorePage() {
         </div>
       </section>
 
-      {/* =====================================================
+      {/* ===================================================
           CONTENT
-      ====================================================== */}
+      =================================================== */}
 
-      <section className="mx-auto max-w-7xl px-5 py-10 sm:px-8 lg:px-10 lg:py-14">
-        <div className="flex flex-col gap-8 lg:flex-row">
+      <section
+        className="
+          relative
+          z-10
+          isolate
+          mx-auto
+          max-w-7xl
+          px-5
+          py-10
+          sm:px-8
+          lg:px-10
+          lg:py-14
+        "
+      >
+        <div
+          className="
+            flex
+            flex-col
+            gap-8
+            lg:flex-row
+          "
+        >
+          {/* =================================================
+              DESKTOP FILTER
+          ================================================= */}
 
-          {/* DESKTOP FILTER */}
-
-          <aside className="hidden w-72 shrink-0 lg:block">
+          <aside
+            className="
+              relative
+              z-50
+              hidden
+              w-72
+              shrink-0
+              lg:block
+            "
+          >
             <div className="sticky top-28">
               <ExploreFilters
                 selectedCity={
@@ -903,13 +1062,36 @@ export default function ExplorePage() {
             </div>
           </aside>
 
-          {/* MAIN */}
+          {/* =================================================
+              MAIN
+          ================================================= */}
 
-          <div className="min-w-0 flex-1">
+          <div
+            className="
+              relative
+              z-10
+              min-w-0
+              flex-1
+            "
+          >
+            {/* =================================================
+                TOOLBAR
+            ================================================= */}
 
-            {/* TOOLBAR */}
+            <div
+              className="
+                relative
+                z-[100]
+                flex
+                flex-col
+                gap-4
+                sm:flex-row
+                sm:items-center
+                sm:justify-between
+              "
+            >
+              {/* RESULT COUNT */}
 
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="text-sm font-black">
                   {loading
@@ -917,7 +1099,18 @@ export default function ExplorePage() {
                     : `${sortedHotels.length} stays found`}
                 </p>
 
-                <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
+                <div
+                  className="
+                    mt-1
+                    flex
+                    flex-wrap
+                    items-center
+                    gap-2
+                    text-xs
+                    text-zinc-500
+                    dark:text-zinc-400
+                  "
+                >
                   <MapPin className="h-3.5 w-3.5" />
 
                   <span>
@@ -943,7 +1136,21 @@ export default function ExplorePage() {
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
+              {/* =================================================
+                  SORT / FILTER
+              ================================================= */}
+
+              <div
+                className="
+                  relative
+                  z-[200]
+                  flex
+                  items-center
+                  gap-2
+                "
+              >
+                {/* MOBILE FILTER */}
+
                 <button
                   type="button"
                   onClick={() =>
@@ -952,40 +1159,91 @@ export default function ExplorePage() {
                         !value
                     )
                   }
-                  className="inline-flex items-center gap-2 rounded-xl border border-black/10 px-3 py-2.5 text-xs font-bold lg:hidden dark:border-white/10"
+                  className="
+                    inline-flex
+                    items-center
+                    gap-2
+                    rounded-xl
+                    border
+                    border-black/10
+                    px-3
+                    py-2.5
+                    text-xs
+                    font-bold
+                    transition
+                    hover:bg-black/5
+                    lg:hidden
+                    dark:border-white/10
+                    dark:hover:bg-white/5
+                  "
                 >
                   <Filter className="h-3.5 w-3.5" />
+
                   Filters
                 </button>
 
-                <SortDropdown
-                  value={sort}
-                  onChange={(
-                    value
-                  ) =>
-                    setSort(
-                      value as SortOption
-                    )
-                  }
-                />
+                {/* SORT */}
+
+                <div
+                  className="
+                    relative
+                    z-[300]
+                  "
+                >
+                  <SortDropdown
+                    value={sort}
+                    onChange={(
+                      value
+                    ) => {
+                      setSort(
+                        value as SortOption
+                      );
+
+                      setSelectedHotelId(
+                        null
+                      );
+                    }}
+                  />
+                </div>
               </div>
             </div>
 
-            {/* MOBILE FILTER */}
+            {/* =================================================
+                MOBILE FILTER PANEL
+            ================================================= */}
 
             {showFilters && (
               <motion.div
                 initial={{
                   opacity: 0,
-                  height: 0,
+                  y: -10,
                 }}
                 animate={{
                   opacity: 1,
-                  height: "auto",
+                  y: 0,
                 }}
-                className="mt-5 lg:hidden"
+                transition={{
+                  duration: 0.2,
+                }}
+                className="
+                  relative
+                  z-[90]
+                  mt-5
+                  lg:hidden
+                "
               >
-                <div className="rounded-3xl border border-black/5 bg-zinc-50 p-4 dark:border-white/5 dark:bg-[#0d0d0d]">
+                <div
+                  className="
+                    rounded-3xl
+                    border
+                    border-black/5
+                    bg-zinc-50
+                    p-4
+                    shadow-xl
+                    dark:border-white/5
+                    dark:bg-[#0d0d0d]
+                  "
+                >
                   <ExploreFilters
                     selectedCity={
                       selectedCity
@@ -1029,19 +1287,56 @@ export default function ExplorePage() {
                         false
                       )
                     }
-                    className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-[#D4AF37] px-4 py-3 text-xs font-black text-black transition hover:bg-[#F5D76E]"
+                    className="
+                      mt-5
+                      flex
+                      w-full
+                      items-center
+                      justify-center
+                      gap-2
+                      rounded-xl
+                      bg-[#D4AF37]
+                      px-4
+                      py-3
+                      text-xs
+                      font-black
+                      text-black
+                      transition
+                      hover:bg-[#F5D76E]
+                    "
                   >
                     <X className="h-4 w-4" />
+
                     Apply filters
                   </button>
                 </div>
               </motion.div>
             )}
 
-            {/* MAP */}
+            {/* =================================================
+                MAP SECTION
+            ================================================= */}
 
-            <div className="mt-8">
-              <div className="mb-4 flex items-end justify-between">
+            <div
+              className="
+                relative
+                z-0
+                isolate
+                mt-8
+              "
+            >
+              {/* MAP HEADER */}
+
+              <div
+                className="
+                  relative
+                  z-50
+                  mb-4
+                  flex
+                  items-end
+                  justify-between
+                "
+              >
                 <div>
                   <p className="text-lg font-black">
                     Explore on map
@@ -1054,7 +1349,18 @@ export default function ExplorePage() {
                   </p>
                 </div>
 
-                <div className="rounded-full bg-[#D4AF37]/10 px-3 py-1.5 text-[10px] font-black text-[#9a7800] dark:text-[#F5D76E]">
+                <div
+                  className="
+                    rounded-full
+                    bg-[#D4AF37]/10
+                    px-3
+                    py-1.5
+                    text-[10px]
+                    font-black
+                    text-[#9a7800]
+                    dark:text-[#F5D76E]
+                  "
+                >
                   {
                     mapHotels.length
                   }{" "}
@@ -1062,48 +1368,102 @@ export default function ExplorePage() {
                 </div>
               </div>
 
-              {!loading &&
-              mapHotels.length >
-                0 ? (
-                <ExploreMap
-                  hotels={
-                    mapHotels
-                  }
-                  selectedHotelId={
-                    selectedHotelId
-                  }
-                  onHotelSelect={
-                    handleMapHotelSelect
-                  }
-                />
-              ) : (
-                <div className="flex h-[500px] items-center justify-center rounded-[2rem] border border-black/5 bg-zinc-100 dark:border-white/5 dark:bg-[#111]">
-                  <div className="px-6 text-center">
-                    <MapPin className="mx-auto h-8 w-8 text-zinc-400" />
+              {/* =================================================
+                  MAP CONTAINER
 
-                    <p className="mt-3 text-sm font-bold">
-                      {loading
-                        ? "Loading map..."
-                        : "No hotel coordinates available"}
-                    </p>
+                  IMPORTANT:
+                  isolate + overflow-hidden
+                  prevents Leaflet z-index
+                  from escaping this area.
+              ================================================= */}
 
-                    <p className="mt-1 text-xs leading-5 text-zinc-500">
-                      Hotels need
-                      valid latitude
-                      and longitude
-                      values to
-                      appear on the
-                      map.
-                    </p>
+              <div
+                className="
+                  relative
+                  z-0
+                  isolate
+                  overflow-hidden
+                  rounded-[2rem]
+                  border
+                  border-black/5
+                  dark:border-white/5
+                "
+              >
+                {!loading &&
+                mapHotels.length >
+                  0 ? (
+                  <div
+                    className="
+                      relative
+                      z-0
+                      isolate
+                      h-[500px]
+                      w-full
+                      overflow-hidden
+                    "
+                  >
+                    <ExploreMap
+                      hotels={
+                        mapHotels
+                      }
+                      selectedHotelId={
+                        selectedHotelId
+                      }
+                      onHotelSelect={
+                        handleMapHotelSelect
+                      }
+                    />
                   </div>
-                </div>
-              )}
+                ) : (
+                  <div
+                    className="
+                      flex
+                      h-[500px]
+                      items-center
+                      justify-center
+                      bg-zinc-100
+                      dark:bg-[#111]
+                    "
+                  >
+                    <div className="px-6 text-center">
+                      <MapPin className="mx-auto h-8 w-8 text-zinc-400" />
+
+                      <p className="mt-3 text-sm font-bold">
+                        {loading
+                          ? "Loading map..."
+                          : "No hotel coordinates available"}
+                      </p>
+
+                      <p className="mt-1 text-xs leading-5 text-zinc-500">
+                        Hotels need
+                        valid latitude
+                        and longitude
+                        values to
+                        appear on the
+                        map.
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
-            {/* HOTEL GRID */}
+            {/* =================================================
+                HOTEL GRID
+            ================================================= */}
 
             {loading ? (
-              <div className="mt-10 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+              <div
+                className="
+                  relative
+                  z-10
+                  mt-10
+                  grid
+                  gap-5
+                  sm:grid-cols-2
+                  xl:grid-cols-3
+                "
+              >
                 {Array.from({
                   length: 6,
                 }).map(
@@ -1117,7 +1477,19 @@ export default function ExplorePage() {
                 )}
               </div>
             ) : error ? (
-              <div className="mt-10 rounded-3xl border border-red-500/20 bg-red-500/5 p-10 text-center">
+              <div
+                className="
+                  relative
+                  z-10
+                  mt-10
+                  rounded-3xl
+                  border
+                  border-red-500/20
+                  bg-red-500/5
+                  p-10
+                  text-center
+                "
+              >
                 <p className="text-sm font-bold">
                   {error}
                 </p>
@@ -1127,7 +1499,16 @@ export default function ExplorePage() {
                   onClick={
                     fetchHotels
                   }
-                  className="mt-5 rounded-xl bg-[#D4AF37] px-5 py-2.5 text-xs font-bold text-black"
+                  className="
+                    mt-5
+                    rounded-xl
+                    bg-[#D4AF37]
+                    px-5
+                    py-2.5
+                    text-xs
+                    font-bold
+                    text-black
+                  "
                 >
                   Try again
                 </button>
@@ -1136,7 +1517,15 @@ export default function ExplorePage() {
               0 ? (
               <motion.div
                 layout
-                className="mt-10 grid gap-5 sm:grid-cols-2 xl:grid-cols-3"
+                className="
+                  relative
+                  z-10
+                  mt-10
+                  grid
+                  gap-5
+                  sm:grid-cols-2
+                  xl:grid-cols-3
+                "
               >
                 {sortedHotels.map(
                   (
@@ -1186,15 +1575,28 @@ export default function ExplorePage() {
               />
             )}
 
-            {/* PAGINATION */}
+            {/* =================================================
+                PAGINATION
+            ================================================= */}
 
             {!loading &&
               !error &&
               sortedHotels.length >
                 0 &&
-              totalPages >
-                1 && (
-                <div className="mt-10 flex items-center justify-center gap-2">
+              totalPages > 1 && (
+                <div
+                  className="
+                    relative
+                    z-20
+                    mt-10
+                    flex
+                    items-center
+                    justify-center
+                    gap-2
+                  "
+                >
+                  {/* PREVIOUS */}
+
                   <button
                     type="button"
                     disabled={
@@ -1212,19 +1614,48 @@ export default function ExplorePage() {
                       setSelectedHotelId(
                         null
                       );
+
+                      scrollToTop();
                     }}
-                    className="rounded-xl border border-black/10 px-4 py-2.5 text-xs font-bold disabled:cursor-not-allowed disabled:opacity-30 dark:border-white/10"
+                    className="
+                      rounded-xl
+                      border
+                      border-black/10
+                      px-4
+                      py-2.5
+                      text-xs
+                      font-bold
+                      transition
+                      hover:bg-black/5
+                      disabled:cursor-not-allowed
+                      disabled:opacity-30
+                      dark:border-white/10
+                      dark:hover:bg-white/5
+                    "
                   >
                     Previous
                   </button>
 
-                  <div className="rounded-xl bg-[#D4AF37] px-4 py-2.5 text-xs font-black text-black">
-                    {page}{" "}
-                    /{" "}
+                  {/* CURRENT PAGE */}
+
+                  <div
+                    className="
+                      rounded-xl
+                      bg-[#D4AF37]
+                      px-4
+                      py-2.5
+                      text-xs
+                      font-black
+                      text-black
+                    "
+                  >
+                    {page} /{" "}
                     {
                       totalPages
                     }
                   </div>
+
+                  {/* NEXT */}
 
                   <button
                     type="button"
@@ -1244,8 +1675,24 @@ export default function ExplorePage() {
                       setSelectedHotelId(
                         null
                       );
+
+                      scrollToTop();
                     }}
-                    className="rounded-xl border border-black/10 px-4 py-2.5 text-xs font-bold disabled:cursor-not-allowed disabled:opacity-30 dark:border-white/10"
+                    className="
+                      rounded-xl
+                      border
+                      border-black/10
+                      px-4
+                      py-2.5
+                      text-xs
+                      font-bold
+                      transition
+                      hover:bg-black/5
+                      disabled:cursor-not-allowed
+                      disabled:opacity-30
+                      dark:border-white/10
+                      dark:hover:bg-white/5
+                    "
                   >
                     Next
                   </button>
@@ -1264,17 +1711,70 @@ export default function ExplorePage() {
 
 function HotelSkeleton() {
   return (
-    <div className="overflow-hidden rounded-3xl border border-black/5 bg-white dark:border-white/5 dark:bg-[#111111]">
-      <div className="aspect-[4/3] animate-pulse bg-zinc-200 dark:bg-zinc-800" />
+    <div
+      className="
+        overflow-hidden
+        rounded-3xl
+        border
+        border-black/5
+        bg-white
+        dark:border-white/5
+        dark:bg-[#111111]
+      "
+    >
+      <div
+        className="
+          aspect-[4/3]
+          animate-pulse
+          bg-zinc-200
+          dark:bg-zinc-800
+        "
+      />
 
       <div className="space-y-3 p-5">
-        <div className="h-3 w-20 animate-pulse rounded-full bg-zinc-200 dark:bg-zinc-800" />
+        <div
+          className="
+            h-3
+            w-20
+            animate-pulse
+            rounded-full
+            bg-zinc-200
+            dark:bg-zinc-800
+          "
+        />
 
-        <div className="h-5 w-3/4 animate-pulse rounded bg-zinc-200 dark:bg-zinc-800" />
+        <div
+          className="
+            h-5
+            w-3/4
+            animate-pulse
+            rounded
+            bg-zinc-200
+            dark:bg-zinc-800
+          "
+        />
 
-        <div className="h-3 w-1/2 animate-pulse rounded bg-zinc-200 dark:bg-zinc-800" />
+        <div
+          className="
+            h-3
+            w-1/2
+            animate-pulse
+            rounded
+            bg-zinc-200
+            dark:bg-zinc-800
+          "
+        />
 
-        <div className="h-4 w-1/3 animate-pulse rounded bg-zinc-200 dark:bg-zinc-800" />
+        <div
+          className="
+            h-4
+            w-1/3
+            animate-pulse
+            rounded
+            bg-zinc-200
+            dark:bg-zinc-800
+          "
+        />
       </div>
     </div>
   );
@@ -1294,8 +1794,34 @@ function EmptyState({
   onClear: () => void;
 }) {
   return (
-    <div className="mt-10 rounded-[2rem] border border-dashed border-zinc-300 p-12 text-center dark:border-white/10">
-      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#D4AF37]/10 text-[#B8860B] dark:text-[#F5D76E]">
+    <div
+      className="
+        relative
+        z-10
+        mt-10
+        rounded-[2rem]
+        border
+        border-dashed
+        border-zinc-300
+        p-12
+        text-center
+        dark:border-white/10
+      "
+    >
+      <div
+        className="
+          mx-auto
+          flex
+          h-14
+          w-14
+          items-center
+          justify-center
+          rounded-2xl
+          bg-[#D4AF37]/10
+          text-[#B8860B]
+          dark:text-[#F5D76E]
+        "
+      >
         <SlidersHorizontal className="h-6 w-6" />
       </div>
 
@@ -1310,7 +1836,17 @@ function EmptyState({
           : ""}
       </h3>
 
-      <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-zinc-500 dark:text-zinc-400">
+      <p
+        className="
+          mx-auto
+          mt-2
+          max-w-md
+          text-sm
+          leading-6
+          text-zinc-500
+          dark:text-zinc-400
+        "
+      >
         We couldn't find any
         published hotels
         matching your current
@@ -1320,7 +1856,18 @@ function EmptyState({
       <button
         type="button"
         onClick={onClear}
-        className="mt-6 rounded-xl bg-[#D4AF37] px-5 py-3 text-xs font-bold text-black transition hover:bg-[#F5D76E]"
+        className="
+          mt-6
+          rounded-xl
+          bg-[#D4AF37]
+          px-5
+          py-3
+          text-xs
+          font-bold
+          text-black
+          transition
+          hover:bg-[#F5D76E]
+        "
       >
         Explore all stays
       </button>
