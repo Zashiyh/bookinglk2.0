@@ -8,11 +8,9 @@ function getToken(request: NextRequest) {
   return request.cookies.get("bookinglk_token")?.value;
 }
 
-/*
-|--------------------------------------------------------------------------
-| GET PROFILE
-|--------------------------------------------------------------------------
-*/
+
+// GET PROFILE
+
 
 export async function GET(request: NextRequest) {
   try {
@@ -94,11 +92,9 @@ export async function GET(request: NextRequest) {
   }
 }
 
-/*
-|--------------------------------------------------------------------------
-| UPDATE PROFILE
-|--------------------------------------------------------------------------
-*/
+
+// UPDATE PROFILE
+
 
 export async function PUT(request: NextRequest) {
   try {

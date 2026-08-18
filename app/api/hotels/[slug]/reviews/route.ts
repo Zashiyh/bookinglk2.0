@@ -17,7 +17,7 @@ interface RouteContext {
 
 /*
 |--------------------------------------------------------------------------
-| GET REVIEWS
+// GET REVIEWS
 |--------------------------------------------------------------------------
 */
 
@@ -130,11 +130,9 @@ export async function POST(
 
     const now = new Date();
 
-    /*
-    |--------------------------------------------------------------------------
-    | AUTHENTICATION
-    |--------------------------------------------------------------------------
-    */
+   
+    // AUTHENTICATION
+    
 
     const token =
       request.cookies.get("bookinglk_token")?.value ||
@@ -151,11 +149,9 @@ export async function POST(
       );
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | VERIFY JWT
-    |--------------------------------------------------------------------------
-    */
+   
+    // VERIFY JWT
+    
 
     const user = verifyToken(token);
 
@@ -170,11 +166,9 @@ export async function POST(
       );
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | USER ROLE
-    |--------------------------------------------------------------------------
-    */
+   
+    // USER ROLE
+    
 
     if (user.role !== "USER") {
       return NextResponse.json(
@@ -187,11 +181,9 @@ export async function POST(
       );
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | VALIDATE USER ID
-    |--------------------------------------------------------------------------
-    */
+   
+    // VALIDATE USER ID
+    
 
     if (
       !user.userId ||
@@ -206,11 +198,9 @@ export async function POST(
       );
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | FIND HOTEL
-    |--------------------------------------------------------------------------
-    */
+   
+    // FIND HOTEL
+    
 
     const hotel = await Hotel.findOne({
       slug,
@@ -227,11 +217,9 @@ export async function POST(
       );
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | LOAD USER
-    |--------------------------------------------------------------------------
-    */
+   
+    // LOAD USER
+    
 
     const dbUser = await User.findById(
       user.userId
@@ -247,11 +235,9 @@ export async function POST(
       );
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | REQUEST BODY
-    |--------------------------------------------------------------------------
-    */
+   
+    // REQUEST BODY
+    
 
     let body: {
       rating?: unknown;
@@ -283,11 +269,9 @@ export async function POST(
         ? body.comment.trim()
         : "";
 
-    /*
-    |--------------------------------------------------------------------------
-    | VALIDATE RATING
-    |--------------------------------------------------------------------------
-    */
+   
+    // VALIDATE RATING
+    
 
     if (
       !Number.isInteger(rating) ||
@@ -303,11 +287,9 @@ export async function POST(
       );
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | VALIDATE COMMENT
-    |--------------------------------------------------------------------------
-    */
+   
+    // VALIDATE COMMENT
+    
 
     if (comment.length < 5) {
       return NextResponse.json(
@@ -330,11 +312,9 @@ export async function POST(
       );
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | VALIDATE TITLE
-    |--------------------------------------------------------------------------
-    */
+   
+    // VALIDATE TITLE
+    
 
     if (title.length > 120) {
       return NextResponse.json(
@@ -346,11 +326,9 @@ export async function POST(
       );
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | CHECK DUPLICATE REVIEW
-    |--------------------------------------------------------------------------
-    */
+   
+    // CHECK DUPLICATE REVIEW
+    
 
     const existingReview = await Review.findOne({
       hotelId: hotel._id,
@@ -368,33 +346,19 @@ export async function POST(
       );
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | NORMALIZE EMAIL
-    |--------------------------------------------------------------------------
-    */
+   
+    // NORMALIZE EMAIL
+   
+ 
 
     const userEmail =
       typeof user.email === "string"
         ? user.email.trim().toLowerCase()
         : "";
 
-    /*
-    |--------------------------------------------------------------------------
-    | FIND ELIGIBLE BOOKING
-    |--------------------------------------------------------------------------
-    |
-    | Booking must:
-    |
-    | 1. Belong to this hotel
-    |
-    | 2. Belong to the current user
-    |    OR have matching guest email
-    |
-    | 3. Be COMPLETED
-    |    OR be CONFIRMED with checkout already passed
-    |
-    */
+
+    // FIND ELIGIBLE BOOKING
+    
 
     const userConditions: Record<string, unknown>[] = [
       {
@@ -420,11 +384,9 @@ export async function POST(
       },
     ];
 
-    /*
-    |--------------------------------------------------------------------------
-    | ELIGIBLE BOOKING QUERY
-    |--------------------------------------------------------------------------
-    */
+   
+    // ELIGIBLE BOOKING QUERY
+    
 
     const eligibleBooking = await Booking.findOne({
       hotelId: hotel._id,
@@ -444,11 +406,9 @@ export async function POST(
       })
       .lean();
 
-    /*
-    |--------------------------------------------------------------------------
-    | NO ELIGIBLE BOOKING
-    |--------------------------------------------------------------------------
-    */
+   
+    // NO ELIGIBLE BOOKING
+    
 
     if (!eligibleBooking) {
       return NextResponse.json(
@@ -461,11 +421,9 @@ export async function POST(
       );
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | AUTO COMPLETE BOOKING
-    |--------------------------------------------------------------------------
-    */
+   
+  // AUTO COMPLETE BOOKING
+  
 
     if (
       eligibleBooking.status === "CONFIRMED" &&
@@ -491,11 +449,9 @@ export async function POST(
       }
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | USER NAME
-    |--------------------------------------------------------------------------
-    */
+   
+   // USER NAME
+    
 
     const userName =
       [
@@ -513,11 +469,9 @@ export async function POST(
       user.email ||
       "Guest";
 
-    /*
-    |--------------------------------------------------------------------------
-    | CREATE VERIFIED REVIEW
-    |--------------------------------------------------------------------------
-    */
+   
+    // CREATE VERIFIED REVIEW
+    
 
     const review = await Review.create({
       userId: new Types.ObjectId(user.userId),
@@ -539,11 +493,9 @@ export async function POST(
       isVerifiedStay: true,
     });
 
-    /*
-    |--------------------------------------------------------------------------
-    | RECALCULATE HOTEL RATING
-    |--------------------------------------------------------------------------
-    */
+   
+    // RECALCULATE HOTEL RATING
+    
 
     const ratingStats = await Review.aggregate([
       {
@@ -577,11 +529,9 @@ export async function POST(
         Number(stats.averageRating) * 10
       ) / 10;
 
-    /*
-    |--------------------------------------------------------------------------
-    | UPDATE HOTEL
-    |--------------------------------------------------------------------------
-    */
+   
+    // UPDATE HOTEL
+    
 
     await Hotel.findByIdAndUpdate(
       hotel._id,
@@ -593,11 +543,9 @@ export async function POST(
       }
     );
 
-    /*
-    |--------------------------------------------------------------------------
-    | RESPONSE
-    |--------------------------------------------------------------------------
-    */
+   
+    // RESPONSE
+    
 
     return NextResponse.json(
       {

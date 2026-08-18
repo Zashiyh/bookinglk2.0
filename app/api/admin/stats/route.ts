@@ -8,9 +8,9 @@ import { verifyToken } from "@/lib/auth/jwt";
 
 export async function GET(req: NextRequest) {
   try {
-    // --------------------------------------------------
+
     // AUTHENTICATION
-    // --------------------------------------------------
+
 
     const token = req.cookies.get("bookinglk_token")?.value;
 
@@ -49,15 +49,15 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // --------------------------------------------------
+
     // DATABASE
-    // --------------------------------------------------
+
 
     await connectDB();
 
-    // --------------------------------------------------
+
     // USERS
-    // --------------------------------------------------
+
 
     const [
       totalUsers,
@@ -95,12 +95,12 @@ export async function GET(req: NextRequest) {
       }),
     ]);
 
-    // --------------------------------------------------
+
     // REVENUE
     //
     // Revenue = PAID bookings
     // excluding cancelled bookings
-    // --------------------------------------------------
+
 
     const revenueResult = await Booking.aggregate([
       {
@@ -127,9 +127,9 @@ export async function GET(req: NextRequest) {
       revenueResult[0]?.total ?? 0
     );
 
-    // --------------------------------------------------
+
     // RECENT BOOKINGS
-    // --------------------------------------------------
+
 
     const recentBookings = await Booking.find({})
       .sort({
@@ -142,9 +142,9 @@ export async function GET(req: NextRequest) {
       })
       .lean();
 
-    // --------------------------------------------------
+
     // NORMALIZE RECENT BOOKINGS
-    // --------------------------------------------------
+
 
     const normalizedRecentBookings =
       recentBookings.map((booking: any) => ({
@@ -215,12 +215,12 @@ export async function GET(req: NextRequest) {
           : "",
       }));
 
-    // --------------------------------------------------
+
     // RESPONSE
     //
     // IMPORTANT:
     // This shape matches page.tsx exactly.
-    // --------------------------------------------------
+
 
     return NextResponse.json({
       success: true,

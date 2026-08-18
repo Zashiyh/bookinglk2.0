@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
 
     /*
     |--------------------------------------------------------------------------
-    | Validate input
+    // Validate input
     |--------------------------------------------------------------------------
     */
 
@@ -33,11 +33,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Find user
-    |--------------------------------------------------------------------------
-    */
+
+    // Find user
+    
 
     const user = await User.findOne({
       email,
@@ -53,11 +51,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Account status
-    |--------------------------------------------------------------------------
-    */
+    // Account status
+
 
     if (!user.isActive) {
       return NextResponse.json(
@@ -91,11 +86,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Check password
-    |--------------------------------------------------------------------------
-    */
+  
+    // Check password
+  
 
     const passwordMatch = await bcrypt.compare(
       password,
@@ -112,11 +105,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Create JWT
-    |--------------------------------------------------------------------------
-    */
+
+    // Create JWT
+   
 
     const token = createToken({
       userId: user._id.toString(),
@@ -124,11 +115,9 @@ export async function POST(req: NextRequest) {
       role: user.role,
     });
 
-    /*
-    |--------------------------------------------------------------------------
-    | Response
-    |--------------------------------------------------------------------------
-    */
+  
+    // Response
+  
 
     const response = NextResponse.json(
       {
@@ -156,11 +145,9 @@ export async function POST(req: NextRequest) {
       }
     );
 
-    /*
-    |--------------------------------------------------------------------------
-    | AUTH COOKIE
-    |--------------------------------------------------------------------------
-    */
+    
+    // AUTH COOKIE
+  
 
     response.cookies.set({
       name: "bookinglk_token",

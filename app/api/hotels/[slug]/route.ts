@@ -12,8 +12,7 @@ export async function GET(
   }
 ) {
   try {
-    // Make sure MongoDB connection is ready.
-    // The existing mongoose connection file handles the connection.
+    
     if (mongoose.connection.readyState !== 1) {
       return NextResponse.json(
         {

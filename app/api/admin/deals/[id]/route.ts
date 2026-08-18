@@ -9,9 +9,9 @@ type RouteContext = {
   }>;
 };
 
-// =====================================================
+
 // GET — Single Deal
-// =====================================================
+
 
 export async function GET(
   _request: NextRequest,
@@ -72,9 +72,9 @@ export async function GET(
   }
 }
 
-// =====================================================
+
 // PUT — Update Deal
-// =====================================================
+
 
 export async function PUT(
   request: NextRequest,
@@ -440,9 +440,9 @@ export async function PUT(
   }
 }
 
-// =====================================================
+
 // DELETE — Delete Deal
-// =====================================================
+
 
 export async function DELETE(
   _request: NextRequest,

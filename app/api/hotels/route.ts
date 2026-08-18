@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
 
     /* =====================================================
-       QUERY PARAMETERS
+   // QUERY PARAMETERS
     ===================================================== */
 
     const search = searchParams.get("search");
@@ -52,26 +52,17 @@ export async function GET(request: NextRequest) {
     const skip = (page - 1) * limit;
 
     /* =====================================================
-       BASE HOTEL FILTER
+      // BASE HOTEL FILTER
     ===================================================== */
 
     const filter: Record<string, unknown> = {
       isPublished: true,
     };
 
-    /* =====================================================
-       SEARCH
+   
+       // SEARCH
        
-       Searches ALL published hotels in MongoDB.
-       
-       This means:
-       - Page 1
-       - Page 2
-       - Page 3
-       - Page 10
-       
-       are all searched.
-    ===================================================== */
+     
 
     if (search && search.trim() !== "") {
       const searchRegex = escapeRegex(
@@ -124,7 +115,7 @@ export async function GET(request: NextRequest) {
     }
 
     /* =====================================================
-       CITY
+     //  CITY
     ===================================================== */
 
     if (city && city.trim() !== "") {
@@ -137,7 +128,7 @@ export async function GET(request: NextRequest) {
     }
 
     /* =====================================================
-       DISTRICT
+     //  DISTRICT
     ===================================================== */
 
     if (district && district.trim() !== "") {
@@ -150,7 +141,7 @@ export async function GET(request: NextRequest) {
     }
 
     /* =====================================================
-       PROPERTY TYPE
+      // PROPERTY TYPE
     ===================================================== */
 
     if (
@@ -174,7 +165,7 @@ export async function GET(request: NextRequest) {
     }
 
     /* =====================================================
-       PRICE
+      // PRICE
     ===================================================== */
 
     if (
@@ -205,7 +196,7 @@ export async function GET(request: NextRequest) {
     }
 
     /* =====================================================
-       RATING
+      // RATING
     ===================================================== */
 
     if (minRating > 0) {
@@ -215,7 +206,7 @@ export async function GET(request: NextRequest) {
     }
 
     /* =====================================================
-       GET HOTELS
+      // GET HOTELS
     ===================================================== */
 
     const [hotels, total] =
@@ -234,7 +225,7 @@ export async function GET(request: NextRequest) {
       ]);
 
     /* =====================================================
-       NO HOTELS
+      // NO HOTELS
     ===================================================== */
 
     if (hotels.length === 0) {
@@ -255,7 +246,7 @@ export async function GET(request: NextRequest) {
     }
 
     /* =====================================================
-       HOTEL IDS
+      // HOTEL IDS
     ===================================================== */
 
     const hotelIds = hotels.map(
@@ -263,7 +254,7 @@ export async function GET(request: NextRequest) {
     );
 
     /* =====================================================
-       GET ACTIVE ROOMS
+      // GET ACTIVE ROOMS
     ===================================================== */
 
     const rooms = await Room.find({
@@ -279,7 +270,7 @@ export async function GET(request: NextRequest) {
       .lean();
 
     /* =====================================================
-       TOTAL ROOMS PER HOTEL
+      // TOTAL ROOMS PER HOTEL
     ===================================================== */
 
     const totalRoomMap = new Map<
@@ -304,7 +295,7 @@ export async function GET(request: NextRequest) {
     }
 
     /* =====================================================
-       ACTIVE BOOKINGS
+      // ACTIVE BOOKINGS
     ===================================================== */
 
     const now = new Date();
@@ -343,7 +334,7 @@ export async function GET(request: NextRequest) {
         .lean();
 
     /* =====================================================
-       BOOKED ROOMS PER HOTEL
+      // BOOKED ROOMS PER HOTEL
     ===================================================== */
 
     const bookedRoomMap = new Map<
@@ -365,7 +356,7 @@ export async function GET(request: NextRequest) {
     }
 
     /* =====================================================
-       BUILD RESPONSE
+      // BUILD RESPONSE
     ===================================================== */
 
     const hotelsWithAvailability =
@@ -405,7 +396,7 @@ export async function GET(request: NextRequest) {
       });
 
     /* =====================================================
-       RESPONSE
+      // RESPONSE
     ===================================================== */
 
     return NextResponse.json({
@@ -445,9 +436,9 @@ export async function GET(request: NextRequest) {
   }
 }
 
-/* =========================================================
-   PROPERTY TYPE NORMALIZER
-========================================================= */
+
+  // PROPERTY TYPE NORMALIZER
+
 
 function normalizePropertyType(
   value: string
@@ -491,9 +482,9 @@ function normalizePropertyType(
   );
 }
 
-/* =========================================================
-   REGEX ESCAPE
-========================================================= */
+
+// REGEX ESCAPE
+
 
 function escapeRegex(
   value: string

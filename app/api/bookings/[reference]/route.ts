@@ -13,9 +13,9 @@ interface RouteContext {
   }>;
 }
 
-// =====================================================
+
 // GET BOOKING
-// =====================================================
+
 
 export async function GET(
   request: NextRequest,
@@ -245,10 +245,10 @@ export async function GET(
   }
 }
 
-// =====================================================
+
 // PATCH
 // CONFIRM BOOKING + SEND EMAIL
-// =====================================================
+
 
 export async function PATCH(
   request: NextRequest,

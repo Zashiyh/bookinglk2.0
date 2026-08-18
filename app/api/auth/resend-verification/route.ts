@@ -27,11 +27,9 @@ export async function POST(req: NextRequest) {
         ? body.email.trim().toLowerCase()
         : "";
 
-    /*
-    |--------------------------------------------------------------------------
-    | VALIDATE EMAIL
-    |--------------------------------------------------------------------------
-    */
+  
+    // VALIDATE EMAIL
+    
 
     if (!email) {
       return NextResponse.json(
@@ -56,11 +54,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | CHECK IF ALREADY VERIFIED
-    |--------------------------------------------------------------------------
-    */
+  
+    // CHECK IF ALREADY VERIFIED
+    
 
     const existingUser =
       await User.findOne({ email });
@@ -78,11 +74,9 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | FIND PENDING REGISTRATION
-    |--------------------------------------------------------------------------
-    */
+  
+    // FIND PENDING REGISTRATION
+    
 
     const pending =
       await EmailVerification.findOne({
@@ -100,11 +94,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | GENERATE NEW OTP
-    |--------------------------------------------------------------------------
-    */
+  
+    // GENERATE NEW OTP
+    
 
     const verificationCode =
       generateVerificationCode();
@@ -115,11 +107,9 @@ export async function POST(req: NextRequest) {
           10 * 60 * 1000
       );
 
-    /*
-    |--------------------------------------------------------------------------
-    | UPDATE PENDING VERIFICATION
-    |--------------------------------------------------------------------------
-    */
+  
+    // UPDATE PENDING VERIFICATION
+    
 
     pending.code =
       verificationCode;
@@ -131,11 +121,9 @@ export async function POST(req: NextRequest) {
 
     await pending.save();
 
-    /*
-    |--------------------------------------------------------------------------
-    | SEND NEW EMAIL
-    |--------------------------------------------------------------------------
-    */
+  
+    // SEND NEW EMAIL
+    
 
     try {
       await sendVerificationEmail({
@@ -159,11 +147,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | SUCCESS
-    |--------------------------------------------------------------------------
-    */
+  
+    // SUCCESS
+    
 
     return NextResponse.json(
       {

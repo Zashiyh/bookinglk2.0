@@ -48,9 +48,9 @@ export async function POST(
       specialRequest,
     } = body;
 
-    // --------------------------------
+    
     // Required fields
-    // --------------------------------
+    
 
     if (
       !hotelId ||
@@ -71,9 +71,9 @@ export async function POST(
       );
     }
 
-    // --------------------------------
+    
     // Validate MongoDB IDs
-    // --------------------------------
+    
 
     if (
       !mongoose.Types.ObjectId.isValid(
@@ -93,9 +93,9 @@ export async function POST(
       );
     }
 
-    // --------------------------------
+    
     // Dates
-    // --------------------------------
+    
 
     const startDate = new Date(checkIn);
     const endDate = new Date(checkOut);
@@ -135,9 +135,9 @@ export async function POST(
       );
     }
 
-    // --------------------------------
+    
     // Prevent past check-in
-    // --------------------------------
+    
 
     const today = new Date();
 
@@ -159,9 +159,9 @@ export async function POST(
       );
     }
 
-    // --------------------------------
+    
     // Find published hotel
-    // --------------------------------
+    
 
     const hotel =
       await Hotel.findOne({
@@ -180,9 +180,9 @@ export async function POST(
       );
     }
 
-    // --------------------------------
+    
     // Find active room
-    // --------------------------------
+    
 
     const room =
       await Room.findOne({
@@ -205,9 +205,9 @@ export async function POST(
       );
     }
 
-    // --------------------------------
+    
     // Validate guest count
-    // --------------------------------
+    
 
     const guestCount =
       Number(guests);
@@ -241,9 +241,9 @@ export async function POST(
       );
     }
 
-    // --------------------------------
+    
     // Guest details
-    // --------------------------------
+    
 
     const firstName =
       String(
@@ -283,9 +283,9 @@ export async function POST(
       );
     }
 
-    // --------------------------------
+    
     // Check room availability
-    // --------------------------------
+    
 
     const overlappingBookings =
       await Booking.countDocuments({
@@ -324,9 +324,9 @@ export async function POST(
       );
     }
 
-    // --------------------------------
+    
     // Calculate price
-    // --------------------------------
+    
 
     const roomTotal =
       room.pricePerNight *
@@ -341,9 +341,9 @@ export async function POST(
       roomTotal +
       serviceFee;
 
-    // --------------------------------
+    
     // Create booking
-    // --------------------------------
+    
 
     const booking =
       await Booking.create({
@@ -396,9 +396,9 @@ export async function POST(
         paymentStatus: "PENDING",
       });
 
-    // --------------------------------
+    
     // Response
-    // --------------------------------
+    
 
     return NextResponse.json(
       {

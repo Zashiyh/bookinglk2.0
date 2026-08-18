@@ -140,11 +140,9 @@ function formatBeds(beds: Room["beds"]) {
 }
 
 export default function CheckoutPage() {
-  /*
-   * ------------------------------------------------
-   * BOOKING DATA
-   * ------------------------------------------------
-   */
+
+  // BOOKING DATA
+ 
 
   const [hotelSlug, setHotelSlug] =
     useState("");
@@ -164,11 +162,9 @@ export default function CheckoutPage() {
   const [error, setError] =
     useState("");
 
-  /*
-   * ------------------------------------------------
-   * AUTH
-   * ------------------------------------------------
-   */
+
+   //AUTH
+ 
 
   const [authLoading, setAuthLoading] =
     useState(true);
@@ -179,11 +175,9 @@ export default function CheckoutPage() {
   const [user, setUser] =
     useState<AuthUser | null>(null);
 
-  /*
-   * ------------------------------------------------
-   * BOOKING FORM
-   * ------------------------------------------------
-   */
+
+  // BOOKING FORM
+ 
 
   const [checkIn, setCheckIn] =
     useState("");
@@ -218,11 +212,9 @@ export default function CheckoutPage() {
   const [submitError, setSubmitError] =
     useState("");
 
-  /*
-   * ------------------------------------------------
-   * GET URL PARAMETERS
-   * ------------------------------------------------
-   */
+
+   // GET URL PARAMETERS
+ 
 
   useEffect(() => {
     const searchParams =
@@ -250,17 +242,9 @@ export default function CheckoutPage() {
     setRoomId(roomParam);
   }, []);
 
-  /*
-   * ------------------------------------------------
-   * CHECK AUTHENTICATION
-   * ------------------------------------------------
-   *
-   * Uses:
-   * GET /api/auth/me
-   *
-   * Your API checks:
-   * bookinglk_token
-   */
+
+   // CHECK AUTHENTICATION
+
 
   useEffect(() => {
     async function checkAuthentication() {
@@ -360,11 +344,9 @@ export default function CheckoutPage() {
     checkAuthentication();
   }, []);
 
-  /*
-   * ------------------------------------------------
-   * LOAD HOTEL + ROOM
-   * ------------------------------------------------
-   */
+
+  // LOAD HOTEL + ROOM
+ 
 
   useEffect(() => {
     if (!hotelSlug || !roomId) {
@@ -473,11 +455,9 @@ export default function CheckoutPage() {
     loadBookingData();
   }, [hotelSlug, roomId]);
 
-  /*
-   * ------------------------------------------------
-   * PRICE CALCULATIONS
-   * ------------------------------------------------
-   */
+
+   // PRICE CALCULATIONS
+ 
 
   const nights = useMemo(
     () =>
@@ -503,11 +483,9 @@ export default function CheckoutPage() {
   const total =
     roomTotal + serviceFee;
 
-  /*
-   * ------------------------------------------------
-   * TODAY
-   * ------------------------------------------------
-   */
+
+  // TODAY
+ 
 
   function getToday() {
     const today = new Date();
@@ -526,11 +504,9 @@ export default function CheckoutPage() {
     return `${year}-${month}-${day}`;
   }
 
-  /*
-   * ------------------------------------------------
-   * LOGIN REDIRECT
-   * ------------------------------------------------
-   */
+
+   // LOGIN REDIRECT
+ 
 
   function getLoginUrl() {
     const currentUrl =
@@ -541,11 +517,9 @@ export default function CheckoutPage() {
     )}`;
   }
 
-  /*
-   * ------------------------------------------------
-   * SUBMIT BOOKING
-   * ------------------------------------------------
-   */
+
+   // SUBMIT BOOKING
+ 
 
   async function handleSubmit(
     event: React.FormEvent<HTMLFormElement>
@@ -760,11 +734,9 @@ export default function CheckoutPage() {
     }
   }
 
-  /*
-   * ------------------------------------------------
-   * AUTH LOADING
-   * ------------------------------------------------
-   */
+
+   // AUTH LOADING
+ 
 
   if (authLoading) {
     return (
@@ -782,11 +754,9 @@ export default function CheckoutPage() {
     );
   }
 
-  /*
-   * ------------------------------------------------
-   * NOT LOGGED IN
-   * ------------------------------------------------
-   */
+
+   // NOT LOGGED IN
+ 
 
   if (!isAuthenticated) {
     return (
@@ -861,11 +831,9 @@ export default function CheckoutPage() {
     );
   }
 
-  /*
-   * ------------------------------------------------
-   * HOTEL / ROOM LOADING
-   * ------------------------------------------------
-   */
+
+   // HOTEL / ROOM LOADING
+ 
 
   if (loading) {
     return (
@@ -887,11 +855,9 @@ export default function CheckoutPage() {
     );
   }
 
-  /*
-   * ------------------------------------------------
-   * ERROR
-   * ------------------------------------------------
-   */
+
+   // ERROR
+ 
 
   if (
     error ||
@@ -926,11 +892,9 @@ export default function CheckoutPage() {
     );
   }
 
-  /*
-   * ------------------------------------------------
-   * AUTHENTICATED CHECKOUT
-   * ------------------------------------------------
-   */
+
+   // AUTHENTICATED CHECKOUT
+ 
 
   return (
     <main className="min-h-screen bg-[#fafafa] text-zinc-950 dark:bg-[#050505] dark:text-white">

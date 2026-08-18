@@ -5,9 +5,9 @@ import connectDB from "@/lib/db/mongoose";
 import { Hotel } from "@/models/Hotel";
 import { verifyToken } from "@/lib/auth/jwt";
 
-/* =========================================================
-   TYPES
-   ========================================================= */
+
+  // TYPES
+  
 
 type PropertyType =
   | "HOTEL"
@@ -52,9 +52,9 @@ type CreateHotelBody = {
   isPublished?: boolean;
 };
 
-/* =========================================================
-   ADMIN AUTHENTICATION
-   ========================================================= */
+
+  // ADMIN AUTHENTICATION
+  
 
 async function authenticateAdmin(
   req: NextRequest
@@ -104,9 +104,9 @@ async function authenticateAdmin(
   };
 }
 
-/* =========================================================
-   GET - ADMIN HOTELS
-   ========================================================= */
+
+  // GET - ADMIN HOTELS
+  
 
 export async function GET(
   req: NextRequest
@@ -288,9 +288,9 @@ export async function GET(
   }
 }
 
-/* =========================================================
-   POST - CREATE HOTEL
-   ========================================================= */
+
+  // POST - CREATE HOTEL
+  
 
 export async function POST(
   req: NextRequest

@@ -11,9 +11,9 @@ import {
 } from "@/models/Room";
 import { verifyToken } from "@/lib/auth/jwt";
 
-/* =========================================================
-   TYPES
-========================================================= */
+
+   // TYPES
+
 
 interface RouteContext {
   params: Promise<{
@@ -36,9 +36,9 @@ interface CreateRoomBody {
   isActive?: unknown;
 }
 
-/* =========================================================
-   AUTHENTICATION
-========================================================= */
+
+  // AUTHENTICATION
+
 
 async function authenticateAdmin(
   req: NextRequest
@@ -107,9 +107,9 @@ const validBedTypes: BedType[] = [
   "TWIN",
 ];
 
-/* =========================================================
-   NORMALIZE BEDS
-========================================================= */
+
+  // NORMALIZE BEDS
+
 
 function normalizeBeds(
   beds: unknown
@@ -164,9 +164,9 @@ function normalizeBeds(
   });
 }
 
-/* =========================================================
-   NORMALIZE STRING ARRAY
-========================================================= */
+
+  // NORMALIZE STRING ARRAY
+
 
 function normalizeStringArray(
   value: unknown
@@ -184,9 +184,9 @@ function normalizeStringArray(
     .filter(Boolean);
 }
 
-/* =========================================================
-   GET - HOTEL ROOMS
-========================================================= */
+
+   // GET - HOTEL ROOMS
+
 
 export async function GET(
   req: NextRequest,
@@ -278,9 +278,9 @@ export async function GET(
   }
 }
 
-/* =========================================================
-   POST - CREATE ROOM
-========================================================= */
+
+  // POST - CREATE ROOM
+
 
 export async function POST(
   req: NextRequest,

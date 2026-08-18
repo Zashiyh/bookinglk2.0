@@ -50,9 +50,9 @@ async function authenticateAdmin(req: NextRequest) {
   };
 }
 
-/* =========================================================
-   GET SINGLE HOTEL
-========================================================= */
+
+  // GET SINGLE HOTEL
+
 
 export async function GET(
   req: NextRequest,
@@ -131,9 +131,9 @@ export async function GET(
   }
 }
 
-/* =========================================================
-   PATCH HOTEL
-========================================================= */
+
+  // PATCH HOTEL
+
 
 export async function PATCH(
   req: NextRequest,
@@ -468,9 +468,9 @@ export async function PATCH(
   }
 }
 
-/* =========================================================
-   DELETE HOTEL
-========================================================= */
+
+  // DELETE HOTEL
+
 
 export async function DELETE(
   req: NextRequest,

@@ -4,11 +4,8 @@ import connectDB from "@/lib/db/mongoose";
 import { verifyToken } from "@/lib/auth/jwt";
 import { User } from "@/models/User";
 
-/*
-|--------------------------------------------------------------------------
-| GET TOKEN
-|--------------------------------------------------------------------------
-*/
+
+// GET TOKEN
 
 function getToken(
   request: NextRequest
@@ -19,11 +16,8 @@ function getToken(
   );
 }
 
-/*
-|--------------------------------------------------------------------------
-| GET CURRENT USER
-|--------------------------------------------------------------------------
-*/
+
+// GET CURRENT USER
 
 async function getCurrentUser(
   request: NextRequest
@@ -91,11 +85,8 @@ async function getCurrentUser(
   };
 }
 
-/*
-|--------------------------------------------------------------------------
-| PUT - UPLOAD / CHANGE AVATAR
-|--------------------------------------------------------------------------
-*/
+
+// PUT - UPLOAD / CHANGE AVATAR
 
 export async function PUT(
   request: NextRequest
@@ -236,11 +227,8 @@ export async function PUT(
   }
 }
 
-/*
-|--------------------------------------------------------------------------
-| DELETE - REMOVE AVATAR
-|--------------------------------------------------------------------------
-*/
+
+// DELETE - REMOVE AVATAR
 
 export async function DELETE(
   request: NextRequest
