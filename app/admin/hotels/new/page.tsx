@@ -415,16 +415,7 @@ export default function AdminNewHotelPage() {
     try {
       setSaving(true);
 
-      /*
-       * IMPORTANT
-       *
-       * NEW HOTEL = POST
-       *
-       * Do NOT use:
-       * /api/admin/hotels/${id}
-       *
-       * because a new hotel does not have an ID yet.
-       */
+      
 
       const response = await fetch(
         "/api/admin/hotels",

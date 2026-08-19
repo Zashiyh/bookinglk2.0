@@ -209,17 +209,17 @@ export default function AdminDashboardPage() {
     loadDashboard();
   }, [loadDashboard]);
 
-  // --------------------------------------------------
+  
   // LOADING
-  // --------------------------------------------------
+  
 
   if (loading) {
     return <DashboardSkeleton />;
   }
 
-  // --------------------------------------------------
+  
   // ERROR
-  // --------------------------------------------------
+  
 
   if (error) {
     return (
@@ -262,9 +262,9 @@ export default function AdminDashboardPage() {
     );
   }
 
-  // --------------------------------------------------
+  
   // DASHBOARD
-  // --------------------------------------------------
+  
 
   return (
     <main className="min-h-[calc(100vh-5rem)] bg-[#f8f8f6] px-4 py-6 text-zinc-900 dark:bg-[#080808] dark:text-white sm:px-6 lg:px-8 lg:py-8">
